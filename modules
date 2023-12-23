@@ -1,0 +1,483 @@
+/*
+Containers can be extracted from different sources
+https://github.com/nf-core/tools/issues/1291
+conda: https://www.nextflow.io/docs/latest/conda.html
+singularity: https://depot.galaxyproject.org/singularity/
+docker: https://quay.io/organization/biocontainers
+*/
+
+/**************************************************************************************************************************************************************
+* fastQC
+**************************************************************************************************************************************************************/
+
+process fastqc {	
+	publishDir "${params.outdir}/fastqc",
+        mode: params.publish_dir_mode
+	
+	//use container
+    conda (params.enable_conda ? "bioconda::fastqc" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/checkm-genome%3A1.2.2--pyhdfd78af_1"
+    } else {
+        container "quay.io/biocontainers/fastqc:0.11.9--0"
+    }
+
+    input:
+        tuple val(prefix), path (reads) 
+	
+	output:
+        tuple val(prefix), path("*.html"), emit: html
+        tuple val(prefix), path("*.zip") , emit: zip
+        path  "*details.txt"          , emit: version
+        //path "*.log" , emit: fastqc_log
+
+
+    script:
+        software = "${params.software_versions}"
+        """
+        cmd="fastqc ${reads}"
+        fastqc --version >> ${software}
+        echo "\${cmd}" >>  ${software}
+        \${cmd}
+        """
+}
+
+
+/**************************************************************************************************************************************************************
+* trimmomatic
+**************************************************************************************************************************************************************/
+
+
+process trimmomatic {
+	publishDir "${params.outdir}/trimmomatic",
+        mode: params.publish_dir_mode
+
+	//use container
+    conda (params.enable_conda ? "bioconda::trimmomatic" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/trimmomatic:0.39--hdfd78af_2"
+    } else {
+        container "quay.io/biocontainers/trimmomatic"
+    }
+
+    input:
+        tuple val(prefix), path (reads) 
+
+    output:
+        tuple val(prefix), path("*.trim.fastq")   , emit: trimmed_reads
+        tuple val(prefix), path("*.unpaired.trim*"),  optional:true, emit: unpaired_reads
+        path  "*details.txt"          , emit: version
+        path ".*log" , emit: trimmomatic_log
+
+
+
+    script:
+        software = "${params.software_versions}"
+        fq_1_paired = prefix +'.R1.trim.fastq'
+        fq_1_unpaired = prefix +'.R1.unpaired.trim.fastq'
+        fq_2_paired = prefix +'.R2.trim.fastq'
+        fq_2_unpaired = prefix +'.R2.unpaired.trim.fastq'
+        adapter="${params.adapter_file}"
+
+        """
+        wget -O ${adapter} https://raw.githubusercontent.com/usadellab/Trimmomatic/main/adapters/${adapter}
+
+        cmd="trimmomatic \
+            PE -phred33 \
+            ${reads[0]} \
+            ${reads[1]} \
+            $fq_1_paired \
+            $fq_1_unpaired \
+            $fq_2_paired \
+            $fq_2_unpaired \
+            ILLUMINACLIP:${adapter}:2:30:10"
+
+        echo  -n 'trimmomatic '  >> ${software}
+        trimmomatic -version >> ${software}
+        echo "\${cmd}" >>  ${software}
+        \${cmd}
+        """
+}
+
+/**************************************************************************************************************************************************************
+* unicycler
+**************************************************************************************************************************************************************/
+
+process unicycler_short {
+	publishDir "${params.outdir}/unicycler",
+        mode: params.publish_dir_mode
+
+	//use container
+    conda (params.enable_conda ? "python=3.7 bioconda::unicycler" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/unicycler:0.5.0--py39h4e691d4_3"
+    } else {
+        container "quay.io/biocontainers/unicycler"
+    }
+
+    input:
+        tuple val(prefix), path (reads) 
+
+    output:
+        tuple val(prefix), path("${prefix}/assembly.fasta"), emit: scaffolds
+        tuple val(prefix), path("${prefix}/assembly.gfa"), emit: gfa
+        tuple val(prefix), path("${prefix}"), emit: scaffolds_path
+        path  "*details.txt"          , emit: version
+        path ".*.log" , emit: unicycler_log
+
+
+    script:
+        software = "${params.software_versions}"
+        task.cpus="${params.threads}"
+        """
+        cmd="unicycler --threads ${task.cpus} -1 ${reads[0]} -2  ${reads[2]} --out ${prefix}" 
+        echo "\${cmd}" >>  ${software}
+        unicycler --version >> ${software}
+        \${cmd}
+        """
+}
+
+/**************************************************************************************************************************************************************
+* busco
+**************************************************************************************************************************************************************/
+
+process busco {
+	publishDir "${params.outdir}/busco",
+        mode: params.publish_dir_mode
+
+	//use container
+    conda (params.enable_conda ? "bioconda::busco" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/busco%3A5.5.0--pyhdfd78af_0"
+    } else {
+        container "quay.io/biocontainers/busco"
+    }
+    input:
+        val scaffolds
+
+    output:
+        path "assembly_qc/*.txt", emit: summary_file
+        val outdir, emit:species_outdir
+        path  "*details.txt"          , emit: version
+        path ".*.log" , emit: busco_log
+
+    script:
+        task.cpus="${params.threads}"
+        software = "${params.software_versions}"
+        busco_dataset="${params.lineage}"
+        """
+        cmd="busco -f -i ${scaffolds} -o assembly_qc --mode genome -l ${busco_dataset} -c ${task.cpus}" 
+        echo "\${cmd}" >>  ${software}
+        busco --version
+        \${cmd}
+        """
+    }
+
+/**************************************************************************************************************************************************************
+* checkm 
+**************************************************************************************************************************************************************/
+
+
+process checkm {
+
+	publishDir "${params.outdir}/checkm",
+        mode: params.publish_dir_mode
+
+//use container
+    conda (params.enable_conda ? "bioconda::checkm-genome" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/checkm-genome%3A1.2.2--pyhdfd78af_1"
+    } else {
+        container "quay.io/biocontainers/checkm-genome"
+    }
+
+    input:
+        tuple val(prefix), path (scaffolds_path)
+         
+    output:
+        path("${prefix}.tsv")  , emit: checkm_tsv
+        path  "*details.txt"   , emit: version
+        path ".*.log" , emit: checkm_log
+
+
+    script:
+        task.cpus="${params.threads}"
+        software = "${params.software_versions}"
+        fasta_ext = 'fasta'
+        """
+        cmd="checkm  lineage_wf  -t $task.cpus  -f ${prefix}.tsv  --tab_table  --pplacer_threads $task.cpus  -x $fasta_ext  $scaffolds_path  ${prefix}_output" 
+        
+        \${cmd}
+
+        echo "\${cmd}" >>  ${software}
+        checkm 2>&1 | grep '...:::' | sed 's/.*CheckM v//;s/ .*//'  >>  ${software}
+
+        """
+}
+
+/**************************************************************************************************************************************************************
+* checkV
+**************************************************************************************************************************************************************/
+
+
+process checkv {
+
+	publishDir "${params.outdir}/checkv",
+        mode: params.publish_dir_mode
+
+//use container
+    conda (params.enable_conda ? "python=3.7 bioconda::checkv" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/checkv%3A1.0.1--pyhdfd78af_0"
+    } else {
+        container "quay.io/biocontainers/checkv"
+    }
+
+    input:
+        tuple val(prefix), path (scaffolds)
+         
+    output:
+        path("quality_summary.tsv"), emit: checkv_summary
+        path("completeness.tsv"), emit: checkv_completeness
+        path("contamination.tsv"), emit: checkv_contamination
+        path("complete_genomes.tsv"), emit: checkv_genomes
+        path  "*details.txt"          , emit: version
+        path ".*.log" , emit: checkv_log
+
+
+    script:
+        task.cpus="${params.threads}"
+        software="${params.software_versions}"
+        """
+        checkv download_database ./
+
+        cmd="checkv end_to_end ${scaffolds} ${prefix} -t ${task.cpus}_output" 
+        echo "\${cmd}" >>  ${software}
+        
+        \${cmd}
+        
+        echo "\${cmd}" >>  ${software}
+        checkv --version   >>  ${software}
+
+        """
+}
+
+
+/**************************************************************************************************************************************************************
+* plasclass
+**************************************************************************************************************************************************************/
+
+process plasclass {
+
+	publishDir "${params.outdir}/plasclass",
+        mode: params.publish_dir_mode
+
+    //use container
+    conda (params.enable_conda ? "bioconda::plasclass" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/plasclass%3A0.1.1--pyhdfd78af_0"
+    } else {
+        container "quay.io/biocontainers/plasclass"
+    }
+
+    input:
+        tuple val(prefix), file(scaffolds)
+
+    output:
+        path "${prefix}.probs.out" , emit: plasclass_tsv
+        path  "*details.txt" , emit: version
+        path ".*.log" , emit: plasclass_log
+
+    script:
+        task.cpus="${params.threads}"
+        software="${params.software_versions}"
+        """
+        cmd="classify_fasta.py -f ${scaffolds} -p ${task.cpus}"
+        \${cmd}
+        echo "\${cmd}" >>  ${software}
+        classify_fasta.py --version >> ${software}
+        """
+
+}
+
+/**************************************************************************************************************************************************************
+* prokka
+**************************************************************************************************************************************************************/
+
+
+process prokka {
+
+	publishDir "${params.outdir}/prokka",
+        mode: params.publish_dir_mode
+
+//use container
+    conda (params.enable_conda ? "bioconda::prokka" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/prokka%3A1.14.6--pl5321hdfd78af_5"
+    } else {
+        container "quay.io/biocontainers/prokka"
+    }
+
+    input:
+        tuple val(prefix), file(contigs_bacteria)
+
+    output:
+        path "${prefix}" , emit: prokka_path
+        path  "*details.txt" , emit: version
+        path ".*.log" , emit: busco_log
+
+    script:
+        task.cpus="${params.threads}"
+        software = "${params.software_versions}"
+        """
+        cmd="prokka --outdir OUTPUT/ --prefix ${sample_name} --cpus ${task.cpus} ${contigs_bacteria}"
+        \${cmd}
+  
+        echo "\${cmd}" >>  ${software}
+        prokka --version >> ${software}
+
+        """
+
+}
+
+
+/**************************************************************************************************************************************************************
+* pharokka
+**************************************************************************************************************************************************************/
+
+
+process pharokka {
+
+	publishDir "${params.outdir}/pharoka",
+        mode: params.publish_dir_mode
+
+//use container
+    conda (params.enable_conda ? "bioconda::pharoka" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/pharokka%3A1.5.1--pyhdfd78af_0"
+    } else {
+        container "quay.io/biocontainers/pharokka"
+    }
+
+    input:
+        tuple val(prefix), file(contigs_phage)
+
+    output:
+        path "${prefix}" , emit: pharokka_path
+        path  "*details.txt" , emit: version
+        path ".*.log" , emit: busco_log
+
+    script:
+        task.cpus="${params.threads}"
+        software = "${params.software_versions}"
+        """
+        install_databases.py -o db
+        cmd="pharokka.py -i ${contigs_phage} -o OUTPUT -d db -t ${task.cpus}"
+        \${cmd}
+
+        echo "\${cmd}" >>  ${software}
+        pharokka.py --version >> ${software}
+
+        """
+
+}
+
+
+
+
+/**************************************************************************************************************************************************************
+* snippy
+**************************************************************************************************************************************************************/
+
+
+process snippy {
+
+	publishDir "${params.outdir}/snippy",
+        mode: params.publish_dir_mode
+
+//use container
+    conda (params.enable_conda ? "bioconda::snippy" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/snippy%3A4.6.0--hdfd78af_3"
+    } else {
+        container "quay.io/biocontainers/snippy"
+    }
+
+
+    input:
+    path refGbk 
+    tuple val(prefix), path (reads) 
+
+    output:
+    path("""${genomeName}""") into ch_out_snippy
+
+
+    script:
+    genomeName = ${prefix}.toString().split("\\_")[0]
+    task.cpus="${params.threads}"
+    software = "${params.software_versions}"
+
+    """
+    cmd="snippy --cpus ${task.cpus} --outdir $genomeName --ref $refGbk --R1 ${reads[0]} --R2 ${reads[1]}"
+
+    \${cmd}
+
+    echo "\${cmd}" >>  ${software}
+    snippy --version >> ${software}
+    """
+
+}
+
+process GTDBTK_CLASSIFYWF {
+	publishDir "${params.outdir}/GTDB",
+        mode: params.publish_dir_mode
+
+    conda (params.enable_conda ? "bioconda::gtdbtk" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/gtdbtk%3A2.3.2--pyhdfd78af_0"
+    } else {
+        container "quay.io/biocontainers/gtdbtk"
+    }
+
+
+    input:
+    tuple val(prefix), path (scaffolds_path)
+    tuple val(db_name), path("database/*")
+    path(mash_db)
+
+    output:
+    tuple val(prefix), path("gtdbtk.${prefix}.*.summary.tsv")         , emit: summary
+    tuple val(prefix), path("gtdbtk.${prefix}.*.classify.tree.gz")    , emit: tree, optional: true
+    tuple val(prefix), path("gtdbtk.${prefix}.*.markers_summary.tsv") , emit: markers, optional: true
+    tuple val(prefix), path("gtdbtk.${prefix}.*.msa.fasta.gz")        , emit: msa, optional: true
+    tuple val(prefix), path("gtdbtk.${prefix}.*.user_msa.fasta.gz")   , emit: user_msa, optional: true
+    tuple val(prefix), path("gtdbtk.${prefix}.*.filtered.tsv")        , emit: filtered, optional: true
+    tuple val(prefix), path("gtdbtk.${prefix}.failed_genomes.tsv")    , emit: failed, optional: true
+    tuple val(prefix), path("gtdbtk.${prefix}.log")                   , emit: log
+    tuple val(prefix), path("gtdbtk.${prefix}.warnings.log")          , emit: warnings
+    path("versions.yml")                           , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    task.cpus="${params.threads}"
+    software = "${params.software_versions}"
+   
+    """
+
+    gtdbtk classify_wf \\
+        $args \\
+        --genome_dir ${scaffolds_path} \\
+        --prefix gtdbtk.${prefix} \\
+        --out_dir \${PWD} \\
+        --cpus $task.cpus \\
+        $mash_mode \\
+        $pplacer_scratch \\
+        --min_perc_aa $params.gtdbtk_min_perc_aa \\
+        --min_af $params.gtdbtk_min_af
+
+    
+    """
+
+}
