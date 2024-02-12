@@ -41,12 +41,12 @@ other:
  **************************************************************************************************************************************************************/
 
 // make people input folder input and prefix of the files only and create shortreads with that
-params.sample_path="$baseDir/rawdata/"
+params.sample_path="$PWD/rawdata/"
 params.sample_name=''
 params.assembly_type = 'short'
 params.longreads = null
 params.threads = (16)
-params.outdir = "$baseDir/${params.sample_name}_results"
+params.outdir = "$PWD/${params.sample_name}_results"
 params.publish_dir_mode = 'copy'
 params.modules = "$baseDir/modules"
 params.reference = null
