@@ -258,6 +258,7 @@ workflow{
 
 		assembly_qc_workflow(shortreads_assembly_workflow.out.scaffolds_path)
 		extrachr_workflow(shortreads_assembly_workflow.out.scaffolds)
+		annotation_workflow(shortreads_assembly_workflow.out.scaffolds)
 		
 
 
