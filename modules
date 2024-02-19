@@ -273,7 +273,7 @@ process plasclass {
         mode: params.publish_dir_mode
 
     //use container
-    conda (params.enable_conda ? "bioconda::plasclass" : null)
+    conda (params.enable_conda ? "python=3.7 bioconda::plasclass" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
         container "https://depot.galaxyproject.org/singularity/plasclass%3A0.1.1--pyhdfd78af_0"
     } else {

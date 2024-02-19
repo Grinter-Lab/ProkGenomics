@@ -216,6 +216,15 @@ workflow extrachr_workflow{
 		checkv_summary=checkv.out.checkv_summary
 }
 
+workflow annotation_workflow{
+	take:
+		scaffolds
+	main:
+		prokka(scaffolds)
+		pharokka(scaffolds)
+
+}
+
 workflow SNV_workflow{
 		shortreads=ch_in_shortreads
 		referencegenome=ch_in_reference
