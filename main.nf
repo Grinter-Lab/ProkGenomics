@@ -243,7 +243,7 @@ workflow{
 
 	main:
 
-	//if (params.assembly == null){
+	if (params.assembly == null){
 		if (params.assembly_type=='short'){
 			if ( params.reference ) { SNV_workflow()}
 			shortreads_QC_workflow()
@@ -260,7 +260,7 @@ workflow{
 		assembly_qc_workflow(shortreads_assembly_workflow.out.scaffolds_path)
 		extrachr_workflow(shortreads_assembly_workflow.out.scaffolds)
 		annotation_workflow(shortreads_assembly_workflow.out.scaffolds)
-	//}
+	}
 	//scaffolds_path=ch_in_assembly
 	//assembly_qc_workflow(ch_in_assembly_path)
 	//extrachr_workflow(ch_in_assembly)
