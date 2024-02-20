@@ -237,13 +237,14 @@ process checkv {
         tuple val(prefix), path (scaffolds)
          
     output:
-        path("quality_summary.tsv"), emit: checkv_summary
-        path("completeness.tsv"), emit: checkv_completeness
-        path("contamination.tsv"), emit: checkv_contamination
-        path("complete_genomes.tsv"), emit: checkv_genomes
+        path("${prefix}/quality_summary.tsv"), emit: checkv_summary
+        path("${prefix}/completeness.tsv"), emit: checkv_completeness
+        path("${prefix}/contamination.tsv"), emit: checkv_contamination
+        path("${prefix}/complete_genomes.tsv"), emit: checkv_genomes
+        path("${prefix}/viruses.fna"), emit: checkv_viruses_fna
+        path("${prefix}/proviruses.fna"), emit: checkv_proviruses_fna
         path  "*details.txt"          , emit: version
         path ".*.log" , emit: checkv_log
-
 
     script:
         task.cpus="${params.threads}"
@@ -251,13 +252,13 @@ process checkv {
         """
         checkv download_database ./
 
-        cmd="checkv end_to_end ${scaffolds} ${prefix} -t ${task.cpus}_output" 
+        cmd="checkv end_to_end ${scaffolds} ${prefix} -t ${task.cpus} -d checkv-db*" 
         echo "\${cmd}" >>  ${software}
         
         \${cmd}
         
         echo "\${cmd}" >>  ${software}
-        checkv --version   >>  ${software}
+         checkv |head -1 >>  ${software}
 
         """
 }
@@ -271,9 +272,11 @@ process plasclass {
 
 	publishDir "${params.outdir}/plasclass",
         mode: params.publish_dir_mode
-
-    //use container
-    conda (params.enable_conda ? "python=3.7 bioconda::plasclass" : null)
+    errorStrategy 'ignore'
+    
+    //use container numpy=1.22.0 joblib=1.2.0 scipy=1.10.0
+//python=3.7 joblib=0.11 numpy=1.14.6 scikit-learn=1.0.2 scipy=1.1.0
+    conda (params.enable_conda ? "python=3.7 bioconda::plasclass": null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
         container "https://depot.galaxyproject.org/singularity/plasclass%3A0.1.1--pyhdfd78af_0"
     } else {
@@ -291,8 +294,9 @@ process plasclass {
     script:
         task.cpus="${params.threads}"
         software="${params.software_versions}"
+        
         """
-        cmd="classify_fasta.py -f ${scaffolds} -p ${task.cpus}"
+        cmd="classify_fasta.py -f ${scaffolds} -p ${task.cpus} "
         \${cmd}
         echo "\${cmd}" >>  ${software}
         classify_fasta.py --version >> ${software}
@@ -322,20 +326,19 @@ process prokka {
         tuple val(prefix), file(contigs_bacteria)
 
     output:
-        path "${prefix}" , emit: prokka_path
+        path "${prefix}_annotation_output" , emit: prokka_path
         path  "*details.txt" , emit: version
-        path ".*.log" , emit: busco_log
+        path ".*.log" , emit: prokka_log
 
     script:
         task.cpus="${params.threads}"
         software = "${params.software_versions}"
         """
-        cmd="prokka --outdir OUTPUT/ --prefix ${sample_name} --cpus ${task.cpus} ${contigs_bacteria}"
+        cmd="prokka --outdir ${prefix}_annotation_output --prefix ${prefix} --cpus ${task.cpus} ${contigs_bacteria}"
         \${cmd}
   
         echo "\${cmd}" >>  ${software}
         prokka --version >> ${software}
-
         """
 
 }
@@ -348,11 +351,11 @@ process prokka {
 
 process pharokka {
 
-	publishDir "${params.outdir}/pharoka",
+	publishDir "${params.outdir}/pharokka",
         mode: params.publish_dir_mode
 
 //use container
-    conda (params.enable_conda ? "bioconda::pharoka" : null)
+    conda (params.enable_conda ? "pyhmmer=0.10.5 bioconda::pharokka" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
         container "https://depot.galaxyproject.org/singularity/pharokka%3A1.5.1--pyhdfd78af_0"
     } else {
@@ -365,14 +368,17 @@ process pharokka {
     output:
         path "${prefix}" , emit: pharokka_path
         path  "*details.txt" , emit: version
-        path ".*.log" , emit: busco_log
+        path ".*.log" , emit: pharokka_log
 
     script:
         task.cpus="${params.threads}"
         software = "${params.software_versions}"
         """
-        install_databases.py -o db
-        cmd="pharokka.py -i ${contigs_phage} -o OUTPUT -d db -t ${task.cpus}"
+        wget "https://zenodo.org/record/8267900/files/pharokka_v1.4.0_databases.tar.gz"
+        tar -xzf pharokka_v1.4.0_databases.tar.gz
+
+        #install_databases.py -o pharokka_v1.4.0_databases
+        cmd="pharokka.py -i ${contigs_phage} -o ${contigs_phage}_annotation_output -d pharokka_v1.4.0_databases -t ${task.cpus}"
         \${cmd}
 
         echo "\${cmd}" >>  ${software}
@@ -428,6 +434,11 @@ process snippy {
 
 }
 
+/**************************************************************************************************************************************************************
+* GTDBTK
+**************************************************************************************************************************************************************/
+
+
 process GTDBTK_CLASSIFYWF {
 	publishDir "${params.outdir}/GTDB",
         mode: params.publish_dir_mode
@@ -479,5 +490,100 @@ process GTDBTK_CLASSIFYWF {
 
     
     """
+
+}
+
+/**************************************************************************************************************************************************************
+* split assembly
+**************************************************************************************************************************************************************/
+
+
+process split_assembly{
+	publishDir "${params.outdir}/splitting_assemblies",
+        mode: params.publish_dir_mode
+
+    input:
+    tuple val(prefix), path (scaffolds_path)
+    tuple val(prefix), path (checkv_summary)
+
+    output:
+    tuple val(prefix), path("${prefix}_de_novoassembly.fasta"), emit: novoassembly_path
+    tuple val(prefix), path("${prefix}_chromosome.fasta"), emit: chromosome_path
+    tuple val(prefix), path("${prefix}_plasmid.fasta"), emit: plasmid_path
+    tuple val(prefix), path("${prefix}_phage.fasta"), emit: phage_path
+    tuple val(prefix), path("${prefix}"), emit: summary_path
+        
+    script:
+
+        """
+        
+        grep "Yes" ${checkv_summary}| cut -f1 >phage_contigs.txt
+        awk -F',' '\$2 >= 0.7' test.txt >plasmid_contigs.txt
+
+        ln -s ${scaffolds_path} ${prefix}_de_novoassembly.fasta
+        ln -s ${prokka_path} 
+        ln -s ${pharokka_path}
+        """
+
+}
+
+
+/**************************************************************************************************************************************************************
+* main_outputs
+**************************************************************************************************************************************************************/
+
+
+process summary{
+	publishDir "${params.outdir}/main_output",
+        mode: params.publish_dir_mode
+
+    input:
+    tuple val(prefix), path (scaffolds_path)
+    tuple val(prefix), path (prokka_path)
+
+
+    novoassembly_path
+    chromosome_path
+    plasmid_path
+    phage_path
+
+    tuple val(db_name), path("database/*")
+    path(mash_db)
+
+    output:
+        tuple val(prefix), path("${prefix}"), emit: summary_path
+        
+
+    script:
+        task.cpus="${params.threads}"
+        software = "${params.software_versions}"
+        rmd = "${params.report}"
+
+        """
+        ## this works fine and gets emitted to the work dir
+        Rscript -e 'write.table(x=data.frame(A=1), file="out.txt")' 
+
+        ## this causes an error
+        script -e 'rmarkdown::render("${rmd}", output_file="script.html")'
+
+        ## and also this:
+        Rscript -e 'rmarkdown::render("${rmd}", output_file="$workDir/script.html")'
+
+
+
+
+  # tuple val(prefix), path("${prefix}_de_novoassembly.fasta"), emit: novoassembly_path
+  #  tuple val(prefix), path("${prefix}_chromosome.fasta"), emit: chromosome_path
+  #  tuple val(prefix), path("${prefix}_plasmid.fasta"), emit: plasmid_path
+  #  tuple val(prefix), path("${prefix}_phage.fasta"), emit: phage_path
+
+        ln -s ${scaffolds_path} ${prefix}_de_novoassembly.fasta
+        ln -s ${prokka_path} 
+        ln -s ${pharokka_path}
+
+     
+        """
+
+
 
 }

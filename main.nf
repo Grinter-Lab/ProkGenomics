@@ -99,8 +99,10 @@ If the assembly has been done provide assembly file
 		Channel.fromPath(params.assembly, checkIfExists: true)
 			.map{ file -> tuple (file.baseName,file)}
 			.set{ch_in_assembly}
+			
 	}
 
+ 	
 /*
 Define a env or container
 */
@@ -241,7 +243,8 @@ workflow SNV_workflow{
 workflow{
 
 	main:
-		
+
+	if (params.assembly == null){
 		if (params.assembly_type=='short'){
 			if ( params.reference ) { SNV_workflow()}
 			shortreads_QC_workflow()
@@ -255,10 +258,14 @@ workflow{
 			shortreads_trim_workflow()
 			shortreads_assembly_workflow(shortreads_trim_workflow.out.trimmed_reads)
 		}
-
 		assembly_qc_workflow(shortreads_assembly_workflow.out.scaffolds_path)
 		extrachr_workflow(shortreads_assembly_workflow.out.scaffolds)
 		annotation_workflow(shortreads_assembly_workflow.out.scaffolds)
+	}
+	//scaffolds_path=ch_in_assembly
+	//assembly_qc_workflow(ch_in_assembly_path)
+	extrachr_workflow(ch_in_assembly)
+	annotation_workflow(ch_in_assembly)
 		
 
 
