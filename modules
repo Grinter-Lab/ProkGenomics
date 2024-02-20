@@ -504,21 +504,24 @@ process split_assembly{
 
     input:
     tuple val(prefix), path (scaffolds_path)
-    tuple val(prefix), path (checkv_summary)
-
+    //tuple val(prefix), path (checkv_summary)
+    //tuple val(prefix), path (plasclass_tsv)
+    tuple val(prefix), path (prokka_path)
+    tuple val(prefix), path (pharokka_path)
+    
     output:
     tuple val(prefix), path("${prefix}_de_novoassembly.fasta"), emit: novoassembly_path
     tuple val(prefix), path("${prefix}_chromosome.fasta"), emit: chromosome_path
     tuple val(prefix), path("${prefix}_plasmid.fasta"), emit: plasmid_path
     tuple val(prefix), path("${prefix}_phage.fasta"), emit: phage_path
-    tuple val(prefix), path("${prefix}"), emit: summary_path
+    tuple val(prefix), path("${prefix}_report"), emit: summary_path
         
     script:
 
         """
         
-        grep "Yes" ${checkv_summary}| cut -f1 >phage_contigs.txt
-        awk -F',' '\$2 >= 0.7' test.txt >plasmid_contigs.txt
+        #grep "Yes" ${checkv_summary}| cut -f1 >phage_contigs.txt
+        #awk -F',' '\$2 >= 0.7' ${plasclass_tsv} >plasmid_contigs.txt
 
         ln -s ${scaffolds_path} ${prefix}_de_novoassembly.fasta
         ln -s ${prokka_path} 
@@ -532,6 +535,38 @@ process split_assembly{
 * main_outputs
 **************************************************************************************************************************************************************/
 
+
+process summary{
+	publishDir "${params.outdir}/main_output",
+        mode: params.publish_dir_mode
+
+    input:
+    tuple val(prefix), path (novoassembly_path)
+    //tuple val(prefix), path (checkv_summary)
+    //tuple val(prefix), path (plasclass_tsv)
+    tuple val(prefix), path (prokka_path)
+    tuple val(prefix), path (pharokka_path)
+    
+    output:
+    tuple val(prefix), path("${prefix}_de_novoassembly.fasta"), emit: 
+    tuple val(prefix), path("${prefix}_chromosome.fasta"), emit: chromosome_path
+    tuple val(prefix), path("${prefix}_plasmid.fasta"), emit: plasmid_path
+    tuple val(prefix), path("${prefix}_phage.fasta"), emit: phage_path
+    tuple val(prefix), path("${prefix}_report"), emit: summary_path
+        
+    script:
+
+        """
+        
+        #grep "Yes" ${checkv_summary}| cut -f1 >phage_contigs.txt
+        #awk -F',' '\$2 >= 0.7' ${plasclass_tsv} >plasmid_contigs.txt
+
+        ln -s ${scaffolds_path} ${prefix}_de_novoassembly.fasta
+        ln -s ${prokka_path} 
+        ln -s ${pharokka_path}
+        """
+
+}
 
 process summary{
 	publishDir "${params.outdir}/main_output",

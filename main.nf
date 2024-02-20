@@ -98,8 +98,7 @@ If the assembly has been done provide assembly file
 	if (params.assembly){      
 		Channel.fromPath(params.assembly, checkIfExists: true)
 			.map{ file -> tuple (file.baseName,file)}
-			.set{ch_in_assembly}
-			
+			.set{ch_in_assembly}		
 	}
 
  	
@@ -264,8 +263,8 @@ workflow{
 	}
 	//scaffolds_path=ch_in_assembly
 	//assembly_qc_workflow(ch_in_assembly_path)
-	extrachr_workflow(ch_in_assembly)
-	annotation_workflow(ch_in_assembly)
+	//extrachr_workflow(ch_in_assembly)
+	//annotation_workflow(ch_in_assembly)
 		
 
 
