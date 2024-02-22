@@ -263,7 +263,7 @@ workflow{
 	}
 	//scaffolds_path=ch_in_assembly
 	//assembly_qc_workflow(ch_in_assembly_path)
-	//extrachr_workflow(ch_in_assembly)
+	extrachr_workflow(ch_in_assembly)
 	//annotation_workflow(ch_in_assembly)
 		
 
