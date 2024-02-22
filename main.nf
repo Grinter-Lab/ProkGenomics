@@ -222,7 +222,7 @@ workflow annotation_workflow{
 		scaffolds
 	main:
 		prokka(scaffolds)
-		//pharokka(scaffolds)
+		pharokka(scaffolds)
 
 }
 

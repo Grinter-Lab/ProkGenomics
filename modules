@@ -17,7 +17,7 @@ process fastqc {
 	//use container
     conda (params.enable_conda ? "bioconda::fastqc" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
-        container "https://depot.galaxyproject.org/singularity/checkm-genome%3A1.2.2--pyhdfd78af_1"
+        container "https://depot.galaxyproject.org/singularity/fastqc%3A0.12.1--hdfd78af_0"
     } else {
         container "quay.io/biocontainers/fastqc:0.11.9--0"
     }
@@ -180,6 +180,9 @@ process busco {
 
 process checkm {
 
+ errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 5
+
 	publishDir "${params.outdir}/checkm",
         mode: params.publish_dir_mode
 
@@ -221,6 +224,8 @@ process checkm {
 
 
 process checkv {
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 5
 
 	publishDir "${params.outdir}/checkv",
         mode: params.publish_dir_mode
@@ -269,6 +274,8 @@ process checkv {
 **************************************************************************************************************************************************************/
 
 process plasclass {
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 5
 
 	publishDir "${params.outdir}/plasclass",
         mode: params.publish_dir_mode
@@ -310,6 +317,8 @@ process plasclass {
 
 
 process prokka {
+     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 5
 
 	publishDir "${params.outdir}/prokka",
         mode: params.publish_dir_mode
@@ -350,6 +359,8 @@ process prokka {
 
 
 process pharokka {
+     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 5
 
 	publishDir "${params.outdir}/pharokka",
         mode: params.publish_dir_mode
@@ -397,6 +408,8 @@ process pharokka {
 
 
 process snippy {
+     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 5
 
 	publishDir "${params.outdir}/snippy",
         mode: params.publish_dir_mode
