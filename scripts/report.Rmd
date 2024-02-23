@@ -1,0 +1,112 @@
+---
+title: 'Report generated on `r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document:
+    theme: flatly
+    include:
+        before_body: logo.svg
+editor_options: 
+  chunk_output_type: console
+params:
+  fastqc_r1: "fastqc_r1"
+  fastqc_r2: "fastqc_r2"
+  novoassembly_path: "de_novoassembly"
+  chromosome_path: "chromosome.fasta"
+  plasmid_path: "plasmid.fasta"
+  phage_path: "phage.fasta"
+  prokka_path: "prokka_folder"
+  pharokka_path: "pharokka_folder"
+  plasmid_class: "plasmid_class"
+  phage_class: "phage_class"
+  chromosome_class: "chromosome_class"
+---
+
+
+<style type="text/css">
+
+h1.title {
+  font-size: 20px;
+}
+</style>
+
+```{r setup, include=FALSE}
+
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE
+)
+
+
+
+```
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message = FALSE, echo=FALSE,fig.width =8,fig.height = 6)
+```
+
+*** 
+## **Reads Quality**
+
+```{r results='asis'}
+cat( "Quiality control for forward read ", params$novoassembly_path)
+
+```
+
+
+
+***
+## **De-novo Assembly**
+
+```{r results='asis'}
+cat( "file is ", params$novoassembly_path)
+
+```
+
+***
+## **Extrachromosomal Elements**
+
+```{r results='asis'}
+cat( "file is ", params$novoassembly_path)
+
+```
+
+***
+## **Annotations**
+
+```{r results='asis'}
+cat( "file is ", params$novoassembly_path)
+
+```
+***
+## **Comparative genomics**
+
+```{r results='asis'}
+cat( "file is ", params$novoassembly_path)
+
+```
+
+***
+## **Characterization of genes of interest**
+
+```{r results='asis'}
+cat( "file is ", params$novoassembly_path)
+
+```
+
+
+

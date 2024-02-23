@@ -181,7 +181,7 @@ process busco {
 process checkm {
 
  errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    maxRetries 5
+    maxRetries 3
 
 	publishDir "${params.outdir}/checkm",
         mode: params.publish_dir_mode
@@ -225,7 +225,7 @@ process checkm {
 
 process checkv {
     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    maxRetries 5
+    maxRetries 3
 
 	publishDir "${params.outdir}/checkv",
         mode: params.publish_dir_mode
@@ -255,8 +255,9 @@ process checkv {
         task.cpus="${params.threads}"
         software="${params.software_versions}"
         """
-        checkv download_database ./
-        rm -rf *tar.gz
+        chmod a+x $baseDir/scripts/db_checkv.sh
+        checkv download_database ./ || ./$baseDir/scripts/db_checkv.sh
+
         cmd="checkv end_to_end ${scaffolds} ${prefix} -t ${task.cpus} -d checkv-db*" 
         echo "\${cmd}" >>  ${software}
         
@@ -275,7 +276,7 @@ process checkv {
 
 process plasclass {
     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    maxRetries 5
+    maxRetries 3
 
 	publishDir "${params.outdir}/plasclass",
         mode: params.publish_dir_mode
@@ -286,6 +287,7 @@ process plasclass {
     conda (params.enable_conda ? "python=3.7 bioconda::plasclass": null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
         container "https://depot.galaxyproject.org/singularity/plasclass%3A0.1.1--pyhdfd78af_0"
+       // container "https://depot.galaxyproject.org/singularity/plasclass%3A0.1.0--py_0"
     } else {
         container "quay.io/biocontainers/plasclass"
     }
@@ -318,7 +320,7 @@ process plasclass {
 
 process prokka {
      errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    maxRetries 5
+    maxRetries 3
 
 	publishDir "${params.outdir}/prokka",
         mode: params.publish_dir_mode
@@ -335,7 +337,7 @@ process prokka {
         tuple val(prefix), file(contigs_bacteria)
 
     output:
-        path "${prefix}_annotation_output" , emit: prokka_path
+        path "${prefix}_prokka_annotation_output" , emit: prokka_path
         path  "*details.txt" , emit: version
         path ".*.log" , emit: prokka_log
 
@@ -343,7 +345,7 @@ process prokka {
         task.cpus="${params.threads}"
         software = "${params.software_versions}"
         """
-        cmd="prokka --outdir ${prefix}_annotation_output --prefix ${prefix} --cpus ${task.cpus} ${contigs_bacteria}"
+        cmd="prokka --outdir ${prefix}_prokka_annotation_output --prefix ${prefix} --cpus ${task.cpus} ${contigs_bacteria}"
         \${cmd}
   
         echo "\${cmd}" >>  ${software}
@@ -360,7 +362,7 @@ process prokka {
 
 process pharokka {
      errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    maxRetries 5
+    maxRetries 3
 
 	publishDir "${params.outdir}/pharokka",
         mode: params.publish_dir_mode
@@ -377,7 +379,7 @@ process pharokka {
         tuple val(prefix), file(contigs_phage)
 
     output:
-        path "${prefix}" , emit: pharokka_path
+        path "${prefix}_pharokka_annotation_output" , emit: pharokka_path
         path  "*details.txt" , emit: version
         path ".*.log" , emit: pharokka_log
 
@@ -385,11 +387,9 @@ process pharokka {
         task.cpus="${params.threads}"
         software = "${params.software_versions}"
         """
-        wget "https://zenodo.org/record/8267900/files/pharokka_v1.4.0_databases.tar.gz"
-        tar -xzf pharokka_v1.4.0_databases.tar.gz
-
-        #install_databases.py -o pharokka_v1.4.0_databases
-        cmd="pharokka.py -i ${contigs_phage} -o ${contigs_phage}_annotation_output -d pharokka_v1.4.0_databases -t ${task.cpus}"
+        chmod a+x $baseDir/scripts/db_pharokka.sh
+        install_databases.py -o pharokka_databases || ./$baseDir/scripts/db_pharokka.sh
+        cmd="pharokka.py -i ${contigs_phage} -o ${contigs_phage}_pharokka_annotation_output -d pharokka_databases -t ${task.cpus}"
         \${cmd}
 
         echo "\${cmd}" >>  ${software}
@@ -409,7 +409,7 @@ process pharokka {
 
 process snippy {
      errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    maxRetries 5
+    maxRetries 3
 
 	publishDir "${params.outdir}/snippy",
         mode: params.publish_dir_mode
@@ -422,22 +422,22 @@ process snippy {
         container "quay.io/biocontainers/snippy"
     }
 
-
     input:
-    path refGbk 
-    tuple val(prefix), path (reads) 
+        path reference_genome
+        tuple val(prefix), path (trimmed_reads)
 
     output:
-    path("""${genomeName}""") into ch_out_snippy
-
+        path "${prefix}_snippy " , emit: snippy_path
+        path  "*details.txt" , emit: version
+        path ".*.log" , emit: pharokka_log
 
     script:
-    genomeName = ${prefix}.toString().split("\\_")[0]
-    task.cpus="${params.threads}"
-    software = "${params.software_versions}"
+        task.cpus="${params.threads}"
+        software = "${params.software_versions}"
+    
 
     """
-    cmd="snippy --cpus ${task.cpus} --outdir $genomeName --ref $refGbk --R1 ${reads[0]} --R2 ${reads[1]}"
+    cmd="snippy --cpus ${task.cpus} --outdir ${prefix}_snippy --ref $reference_genome --R1 ${trimmed_reads[0]} --R2 ${trimmed_reads[1]}"
 
     \${cmd}
 
@@ -465,24 +465,21 @@ process GTDBTK_CLASSIFYWF {
 
 
     input:
-    tuple val(prefix), path (scaffolds_path)
-    tuple val(db_name), path("database/*")
-    path(mash_db)
+        tuple val(prefix), path (chromosome_path)
+        path(mash_db)
 
     output:
-    tuple val(prefix), path("gtdbtk.${prefix}.*.summary.tsv")         , emit: summary
-    tuple val(prefix), path("gtdbtk.${prefix}.*.classify.tree.gz")    , emit: tree, optional: true
-    tuple val(prefix), path("gtdbtk.${prefix}.*.markers_summary.tsv") , emit: markers, optional: true
-    tuple val(prefix), path("gtdbtk.${prefix}.*.msa.fasta.gz")        , emit: msa, optional: true
-    tuple val(prefix), path("gtdbtk.${prefix}.*.user_msa.fasta.gz")   , emit: user_msa, optional: true
-    tuple val(prefix), path("gtdbtk.${prefix}.*.filtered.tsv")        , emit: filtered, optional: true
-    tuple val(prefix), path("gtdbtk.${prefix}.failed_genomes.tsv")    , emit: failed, optional: true
-    tuple val(prefix), path("gtdbtk.${prefix}.log")                   , emit: log
-    tuple val(prefix), path("gtdbtk.${prefix}.warnings.log")          , emit: warnings
-    path("versions.yml")                           , emit: versions
-
-    when:
-    task.ext.when == null || task.ext.when
+        tuple val(prefix), path("gtdbtk.${prefix}.*.summary.tsv")         , emit: summary
+        tuple val(prefix), path("gtdbtk.${prefix}.*.classify.tree.gz")    , emit: tree, optional: true
+        tuple val(prefix), path("gtdbtk.${prefix}.*.markers_summary.tsv") , emit: markers, optional: true
+        tuple val(prefix), path("gtdbtk.${prefix}.*.msa.fasta.gz")        , emit: msa, optional: true
+        tuple val(prefix), path("gtdbtk.${prefix}.*.user_msa.fasta.gz")   , emit: user_msa, optional: true
+        tuple val(prefix), path("gtdbtk.${prefix}.*.filtered.tsv")        , emit: filtered, optional: true
+        tuple val(prefix), path("gtdbtk.${prefix}.failed_genomes.tsv")    , emit: failed, optional: true
+        tuple val(prefix), path("gtdbtk.${prefix}.log")                   , emit: log
+        tuple val(prefix), path("gtdbtk.${prefix}.warnings.log")          , emit: warnings
+        path  "*details.txt" , emit: version
+        path ".*.log" , emit: gtdbtk_log
 
     script:
     task.cpus="${params.threads}"
@@ -491,17 +488,10 @@ process GTDBTK_CLASSIFYWF {
     """
 
     gtdbtk classify_wf \\
-        $args \\
-        --genome_dir ${scaffolds_path} \\
+        --genome_dir ${chromosome_path} \\
         --prefix gtdbtk.${prefix} \\
-        --out_dir \${PWD} \\
+        --out_dir ${prefix}_gtdbtk_classification \\
         --cpus $task.cpus \\
-        $mash_mode \\
-        $pplacer_scratch \\
-        --min_perc_aa $params.gtdbtk_min_perc_aa \\
-        --min_af $params.gtdbtk_min_af
-
-    
     """
 
 }
@@ -584,9 +574,18 @@ process summary{
         script -e 'rmarkdown::render("${rmd}", output_file="script.html")'
 
         ## and also this:
-        Rscript -e 'rmarkdown::render("${rmd}", output_file="$workDir/script.html")'
+        Rscript -e 'rmarkdown::render("${rmd}", output_file="$baseDir/script.html")'
 
 
+for (cluster in celltypes){
+  print(cluster)
+  rmarkdown::render(
+  input  = 'Pseudobulk_template.Rmd', 
+  params=list(  cluster_input=cluster),
+  output_dir = paste0("pseudobulk"),
+  output_file = c(paste0("Pseudobulk",gsub(" ","", cluster),".html"))
+  )
+}
 
 
   # tuple val(prefix), path("${prefix}_de_novoassembly.fasta"), emit: novoassembly_path
@@ -604,3 +603,17 @@ process summary{
 
 
 }
+
+/*process Deleting_work_directory{
+    input:
+    tuple val(name), path(read) from Variant_calling   //here I gave the input from last process.
+
+    output:
+    path CleanUp, optional: true
+
+    script:
+    """
+    rm -rf /path/of/the/work directory/work
+    rm -rf /path/of/the/Hidden Log files/.nextflow*
+    """
+}*/
