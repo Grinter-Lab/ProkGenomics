@@ -275,19 +275,16 @@ process checkv {
 **************************************************************************************************************************************************************/
 
 process plasclass {
-    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    maxRetries 3
+    //errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    //maxRetries 3
+    //errorStrategy 'ignore'
 
 	publishDir "${params.outdir}/plasclass",
         mode: params.publish_dir_mode
-    errorStrategy 'ignore'
-    
-    //use container numpy=1.22.0 joblib=1.2.0 scipy=1.10.0
-//python=3.7 joblib=0.11 numpy=1.14.6 scikit-learn=1.0.2 scipy=1.1.0
+
     conda (params.enable_conda ? "python=3.7 bioconda::plasclass": null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
         container "https://depot.galaxyproject.org/singularity/plasclass%3A0.1.1--pyhdfd78af_0"
-       // container "https://depot.galaxyproject.org/singularity/plasclass%3A0.1.0--py_0"
     } else {
         container "quay.io/biocontainers/plasclass"
     }
@@ -305,10 +302,11 @@ process plasclass {
         software="${params.software_versions}"
         
         """
-        cmd="classify_fasta.py -f ${scaffolds} -p ${task.cpus} "
+        
+        cmd="classify_fasta.py -f ${scaffolds} -p ${task.cpus} -o ${prefix}.probs.out"
         \${cmd}
         echo "\${cmd}" >>  ${software}
-        classify_fasta.py --version >> ${software}
+
         """
 
 }
@@ -319,8 +317,6 @@ process plasclass {
 
 
 process prokka {
-     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    maxRetries 3
 
 	publishDir "${params.outdir}/prokka",
         mode: params.publish_dir_mode
@@ -335,9 +331,10 @@ process prokka {
 
     input:
         tuple val(prefix), file(contigs_bacteria)
+        val (element)
 
     output:
-        path "${prefix}_prokka_annotation_output" , emit: prokka_path
+        path "${prefix}_${element}_prokka_annotation" , emit: prokka_path
         path  "*details.txt" , emit: version
         path ".*.log" , emit: prokka_log
 
@@ -345,7 +342,7 @@ process prokka {
         task.cpus="${params.threads}"
         software = "${params.software_versions}"
         """
-        cmd="prokka --outdir ${prefix}_prokka_annotation_output --prefix ${prefix} --cpus ${task.cpus} ${contigs_bacteria}"
+        cmd="prokka --outdir ${prefix}_${element}_prokka_annotation --prefix ${prefix} --cpus ${task.cpus} ${contigs_bacteria}"
         \${cmd}
   
         echo "\${cmd}" >>  ${software}
@@ -379,9 +376,9 @@ process pharokka {
         tuple val(prefix), file(contigs_phage)
 
     output:
-        path "${prefix}_pharokka_annotation_output" , emit: pharokka_path
-        path  "*details.txt" , emit: version
-        path ".*.log" , emit: pharokka_log
+        path "${prefix}_phage_pharokka_annotation" , emit: pharokka_path, optional: true
+        path  "*details.txt" , emit: version, optional: true
+        path ".*.log" , emit: pharokka_log, optional: true
 
     script:
         task.cpus="${params.threads}"
@@ -389,7 +386,7 @@ process pharokka {
         """
         chmod a+x $baseDir/scripts/db_pharokka.sh
         install_databases.py -o pharokka_databases || ./$baseDir/scripts/db_pharokka.sh
-        cmd="pharokka.py -i ${contigs_phage} -o ${contigs_phage}_pharokka_annotation_output -d pharokka_databases -t ${task.cpus}"
+        cmd="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus} -meta"
         \${cmd}
 
         echo "\${cmd}" >>  ${software}
@@ -429,7 +426,7 @@ process snippy {
     output:
         path "${prefix}_snippy " , emit: snippy_path
         path  "*details.txt" , emit: version
-        path ".*.log" , emit: pharokka_log
+        path ".*.log" , emit: snippy_log
 
     script:
         task.cpus="${params.threads}"
@@ -500,81 +497,130 @@ process GTDBTK_CLASSIFYWF {
 * split assembly
 **************************************************************************************************************************************************************/
 
-
-process split_assembly{
+        
+process split_assembly {
 	publishDir "${params.outdir}/splitting_assemblies",
         mode: params.publish_dir_mode
 
+  conda (params.enable_conda ? "bioconda::samtools" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/samtools%3A1.9--h91753b0_8"
+    } else {
+        container "quay.io/biocontainers/samtools"
+    }
+
+
     input:
-    tuple val(prefix), path (scaffolds_path)
-    //tuple val(prefix), path (checkv_summary)
-    //tuple val(prefix), path (plasclass_tsv)
-    tuple val(prefix), path (prokka_path)
-    tuple val(prefix), path (pharokka_path)
+        tuple val(prefix), path (scaffolds_path)
+        path (plasclass_tsv)
+        path (checkv_summary)
     
     output:
-    tuple val(prefix), path("${prefix}_de_novoassembly.fasta"), emit: novoassembly_path
-    tuple val(prefix), path("${prefix}_chromosome.fasta"), emit: chromosome_path
-    tuple val(prefix), path("${prefix}_plasmid.fasta"), emit: plasmid_path
-    tuple val(prefix), path("${prefix}_phage.fasta"), emit: phage_path
-    tuple val(prefix), path("${prefix}_report"), emit: summary_path
+        tuple val(prefix), path("${prefix}_de_novoassembly.fasta"), emit: novoassembly_path
+        tuple val(prefix), path("${prefix}_chromosome.fasta"), emit: chromosome_path
+        tuple val(prefix), path("${prefix}_plasmid.fasta"), emit: plasmid_path
+        tuple val(prefix), path("${prefix}_phage.fasta"), emit: phage_path
         
     script:
 
         """
-        
-        #grep "Yes" ${checkv_summary}| cut -f1 >phage_contigs.txt
-        #awk -F',' '\$2 >= 0.7' ${plasclass_tsv} >plasmid_contigs.txt
+        # all contigs 
+        grep ">" ${scaffolds_path} |cut -d " " -f1|sed 's/>//' >all_contigs.txt
 
+        #plasmid contigs
+        awk 'BEGIN{OFS="\\t"} \$2 >= 0.8 {print \$1}' ${plasclass_tsv} >plasmid_contigs.txt
+
+        #phage contigs
+        grep "Yes" ${checkv_summary}| cut -f1 >phage_contigs.txt
+
+        #extrachr contigs
+        cat plasmid_contigs.txt phage_contigs.txt >extrachr.txt
+        
+        #chromosome contigs
+        grep -vwf extrachr.txt all_contigs.txt >chromosome_contigs.txt
+
+        #extract contigs
+        xargs samtools faidx ${scaffolds_path} < chromosome_contigs.txt > ${prefix}_chromosome.fasta
+        xargs samtools faidx ${scaffolds_path} < plasmid_contigs.txt > ${prefix}_plasmid.fasta
+        xargs samtools faidx ${scaffolds_path} < phage_contigs.txt > ${prefix}_tmp_phage.fasta
+        awk 'BEGIN { FS=OFS=" " } /^>/ { print \$1"_phage"; next }1' ${prefix}_tmp_phage.fasta > ${prefix}_phage.fasta
+
+        
         ln -s ${scaffolds_path} ${prefix}_de_novoassembly.fasta
-        ln -s ${prokka_path} 
-        ln -s ${pharokka_path}
+
         """
+
+
 
 }
 
 
 /**************************************************************************************************************************************************************
-* main_outputs
+* Report
 **************************************************************************************************************************************************************/
 
 
 
-process summary{
-	publishDir "${params.outdir}/main_output",
-        mode: params.publish_dir_mode
-
+process report{
     input:
-    tuple val(prefix), path (scaffolds_path)
-    tuple val(prefix), path (prokka_path)
-
-
-    novoassembly_path
-    chromosome_path
-    plasmid_path
-    phage_path
-
-    tuple val(db_name), path("database/*")
-    path(mash_db)
-
+        val (fastqc_r1)
+        val (fastqc_r2)
+        val (fastqc_trim_r1)
+        val (fastqc_trim_r2)
+        val (novoassembly_path)
+        val (chromosome_path)
+        val (plasmid_path)
+        val (phage_path)
+        val (prokka_denovo_folder)
+        val ( prokka_chr_path)
+        val (prokka_plasmids_path)
+        val (pharokka_path)
+        val (pharokka_path)
+        val (plasmid_class)
+        val (phage_class)
+        val (snippy_path)
+        val (assembly2gene_table)
+        val (assembly2gene_aligments)
+        val (assembly2gene_peptides)
+  
     output:
-        tuple val(prefix), path("${prefix}"), emit: summary_path
-        
+        tuple val(prefix), path(" ${params.outdir}/${prefix}_ProkGenomics_report.html"), emit: report_path
+
 
     script:
         task.cpus="${params.threads}"
         software = "${params.software_versions}"
         rmd = "${params.report}"
-
+        version= "${params.version}"
+        github="${params.github}"
+        report_template="${params.report_template}"
+       
         """
-        ## this works fine and gets emitted to the work dir
-        Rscript -e 'write.table(x=data.frame(A=1), file="out.txt")' 
+        Rscript -e  'rmarkdown::render(input  = ${rmd}, 
+                                       params=list(  
+                                        version=  ${version},                                   
+                                        github= ${github},
+                                        fastqc_r1= "fastqc_r1",
+                                        fastqc_r2= "fastqc_r2",
+                                        fastqc_trim_r1= "fastqc_trim_r1",
+                                        fastqc_trim_r2= "fastqc_trim_r2",
+                                        novoassembly_path= "de_novoassembly",
+                                        chromosome_path= "chromosome.fasta",
+                                        plasmid_path= "plasmid.fasta",
+                                        phage_path= "phage.fasta",
+                                        prokka_denovo_folder= "prokka_denovo_folder",
+                                        prokka_chr_path= "prokka_chr_folder",
+                                        prokka_plasmids_path= "prokka_plasmids_folder",
+                                        pharokka_path= "pharokka_folder",
+                                        plasmid_class= "plasmid_class",
+                                        phage_class= "phage_class",
+                                        snippy_path= "snippy_path",
+                                        assembly2gene_table= "assembly2gene_table",
+                                        assembly2gene_aligments= "assembly2gene_aligments",
+                                        assembly2gene_peptides= "assembly2gene_peptides",
+                                         ),
+                                        output_file = ${params.outdir}/${prefix}_ProkGenomics_report.html)
 
-        ## this causes an error
-        script -e 'rmarkdown::render("${rmd}", output_file="script.html")'
-
-        ## and also this:
-        Rscript -e 'rmarkdown::render("${rmd}", output_file="$baseDir/script.html")'
 
 
 for (cluster in celltypes){

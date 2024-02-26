@@ -53,7 +53,9 @@ params.reference = null
 params.software_versions="software_details.txt"
 params.adapter_file="TruSeq3-PE.fa"
 params.assembly=null
-
+params.version="version 1.0.0"
+params.report_template="$baseDir/scripts/report.Rmd"
+params.github="https://github.com/Grinter-Lab/ProkGenomics"
 /*************************************************************************************************************************************************************
  * Channels
  read parameters in the command line 
@@ -64,6 +66,9 @@ params.assembly=null
 
 
 shortreads = "${params.sample_path}/${params.sample_name}*{1,2}*"
+plasmid='plasmids'
+chromosome='chromosome'
+denovoassembly='denovoassembly'
 /*
 Pick the type of de novo-assembly process
 */
@@ -117,16 +122,15 @@ log.info """\
 		Author: Laura Perlaza-Jimenez (PhD)
 		Rhys Grinter Laboratory
 		======================================================================
-		Type of Assembly   : ${params.assembly_type}
-		Short Reads        : ${shortreads} 
-		Long Reads         : ${params.longreads}
+		Type of assembly   : ${params.assembly_type}
+		Short reads        : ${shortreads} 
+		Long reads         : ${params.longreads}
 		Assembly           : ${params.assembly}
 		Reference          : ${params.reference}
 		Output directory   : ${params.outdir}
-		Number of Threats  : ${params.threads}
+		Number of threats  : ${params.threads}
+		version            : ${params.version}       
 		======================================================================        
-
-
          """
          .stripIndent()
 
@@ -155,6 +159,9 @@ include { plasclass } from params.modules
 // Taxonomy classification
 //include { GTDB } from params.modules
 
+// split assembly
+include { split_assembly } from params.modules
+
 // Annotation
 include { prokka } from params.modules
 include { pharokka } from params.modules
@@ -172,11 +179,9 @@ include { snippy } from params.modules
 
 
 workflow shortreads_QC_workflow{
-		fastqc(ch_in_shortreads)
-
-		//emit:
-		//assembly = metaspades.out.assemblyshort
-		//ch_in_reads=ch_in_shortreads  
+			fastqc(ch_in_shortreads)
+		emit:
+			fastqc_html=fastqc.out.html
 	}
 
 workflow shortreads_trim_workflow{
@@ -217,14 +222,60 @@ workflow extrachr_workflow{
 		checkv_summary=checkv.out.checkv_summary
 }
 
-workflow annotation_workflow{
+workflow split_assembly_workflow{
 	take:
 		scaffolds
+		plasclass_tsv
+		checkv_summary
 	main:
-		prokka(scaffolds)
-		//pharokka(scaffolds)
-
+	 	split_assembly(scaffolds,plasclass_tsv,checkv_summary)
+	emit:
+		novoassembly_path=split_assembly.out.novoassembly_path
+    	chromosome_path=split_assembly.out.chromosome_path
+    	plasmid_path=split_assembly.out.plasmid_path
+    	phage_path=split_assembly.out.phage_path
 }
+
+workflow prokka_scaffolds_workflow{
+	take:
+		contigs
+		denovoassembly
+	main:
+		prokka(contigs,denovoassembly)
+	emit:
+		denovoassembly_annotation_prokka=prokka.out.prokka_path
+}
+
+workflow prokka_chr_workflow{
+	take:
+		contigs
+		chromosome
+	main:
+		prokka(contigs,chromosome)
+		
+	emit:
+		chr_annotation_prokka=prokka.out.prokka_path
+}
+
+workflow prokka_plasmids_workflow{
+	take:
+		contigs
+		plasmid
+	main:
+		prokka(contigs,plasmid)
+	emit:
+		plasmids_annotation_prokka=prokka.out.prokka_path
+}
+
+workflow pharokka_workflow{
+	take:
+		contigs
+	main:
+		pharokka(contigs)
+	emit:
+		annotation_pharokka=pharokka.out.pharokka_path
+}
+
 
 workflow SNV_workflow{
 	take:
@@ -262,12 +313,17 @@ workflow{
 		}
 		assembly_qc_workflow(shortreads_assembly_workflow.out.scaffolds_path)
 		extrachr_workflow(shortreads_assembly_workflow.out.scaffolds)
-		annotation_workflow(shortreads_assembly_workflow.out.scaffolds)
+		split_assembly_workflow(shortreads_assembly_workflow.out.scaffolds,extrachr_workflow.out.plasclass_tsv,extrachr_workflow.out.checkv_summary)
+		prokka_chr_workflow(split_assembly_workflow.out.chromosome_path,chromosome)
+		prokka_plasmids_workflow(split_assembly_workflow.out.plasmid_path,plasmid)
+		prokka_scaffolds_workflow(shortreads_assembly_workflow.out.scaffolds,denovoassembly)
+		pharokka_workflow(split_assembly_workflow.out.phage_path)
+		
 	}
 	//scaffolds_path=ch_in_assembly
 	//assembly_qc_workflow(ch_in_assembly_path)
-	extrachr_workflow(ch_in_assembly)
-	annotation_workflow(ch_in_assembly)
+	//extrachr_workflow(ch_in_assembly)
+	//annotation_workflow(ch_in_assembly)
 		
 
 
@@ -284,7 +340,7 @@ workflow{
 
 
 workflow.onComplete { 
-	println ( workflow.success ? "\nDone! Open the following report in your browser --> $params.outdir\n" : "Oops .. something went wrong" )
+	println ( workflow.success ? "\nDone! Open the following report in your browser --> $params.outdir/report.html\n" : "Oops .. something went wrong" )
 }
  
 

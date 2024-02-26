@@ -1,0 +1,3 @@
+#!/bin/bash
+
+nextflow run $PWD/main.nf $@
