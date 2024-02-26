@@ -171,7 +171,11 @@ include { snippy } from params.modules
 //include { minimap2 } from params.modules
 
 // Charaterization of genome
+//include {prodigal} from params.modules
 //include {assembly2feature} from params.modules
+
+//Create a final report of outputs
+include { report } from params.modules
 
 /**************************************************************************************************************************************************************
  * workflows subroutine
@@ -188,6 +192,7 @@ workflow shortreads_trim_workflow{
 		trimmomatic(ch_in_shortreads)
 		fastqc(trimmomatic.out.trimmed_reads)
 	emit:
+		fastqc_trim_html=fastqc.out.html
 		trimmed_reads=trimmomatic.out.trimmed_reads
 }
 
@@ -243,7 +248,7 @@ workflow prokka_scaffolds_workflow{
 	main:
 		prokka(contigs,denovoassembly)
 	emit:
-		denovoassembly_annotation_prokka=prokka.out.prokka_path
+		prokka_path=prokka.out.prokka_path
 }
 
 workflow prokka_chr_workflow{
@@ -254,7 +259,7 @@ workflow prokka_chr_workflow{
 		prokka(contigs,chromosome)
 		
 	emit:
-		chr_annotation_prokka=prokka.out.prokka_path
+		prokka_path=prokka.out.prokka_path
 }
 
 workflow prokka_plasmids_workflow{
@@ -264,7 +269,7 @@ workflow prokka_plasmids_workflow{
 	main:
 		prokka(contigs,plasmid)
 	emit:
-		plasmids_annotation_prokka=prokka.out.prokka_path
+		prokka_path=prokka.out.prokka_path
 }
 
 workflow pharokka_workflow{
@@ -273,7 +278,50 @@ workflow pharokka_workflow{
 	main:
 		pharokka(contigs)
 	emit:
-		annotation_pharokka=pharokka.out.pharokka_path
+		pharokka_path=pharokka.out.pharokka_path
+}
+
+workflow report_workflow{
+	take:
+		fastqc_html 
+		fastqc_trim_html 
+    	novoassembly_path
+        chromosome_path
+        plasmid_path
+        phage_path
+        prokka_denovo_folder
+        prokka_chr_path
+        prokka_plasmids_path
+        pharokka_path
+        pharokka_path
+        plasmid_class
+        phage_class
+       // snippy_path
+       // assembly2gene_table
+       // assembly2gene_aligments
+       // assembly2gene_peptides
+	main:
+		report(fastqc_html,
+		fastqc_trim_html,
+        novoassembly_path,
+        chromosome_path,
+        plasmid_path,
+        phage_path,
+        prokka_denovo_folder,
+        prokka_chr_path,
+        prokka_plasmids_path,
+        pharokka_path,
+        pharokka_path,
+        plasmid_class,
+        phage_class,
+        //snippy_path,
+        //assembly2gene_table,
+        //assembly2gene_aligments,
+        //assembly2gene_peptides
+		)
+		
+	emit:
+		final_report=report.out.report_path
 }
 
 
@@ -284,6 +332,8 @@ workflow SNV_workflow{
 		
 	main:
 		snippy(ch_in_reference,trimmed_reads)
+	emit:
+		snippy_path= snippy.out.snippy_path
 }
 
 /************************************************************************************************************************************************************** 
@@ -318,7 +368,24 @@ workflow{
 		prokka_plasmids_workflow(split_assembly_workflow.out.plasmid_path,plasmid)
 		prokka_scaffolds_workflow(shortreads_assembly_workflow.out.scaffolds,denovoassembly)
 		pharokka_workflow(split_assembly_workflow.out.phage_path)
-		
+		//report_workflow(shortreads_QC_workflow.out.fastqc_html,shortreads_assembly_workflow.out.scaffolds,split_assembly_workflow.out.chromosome_path)
+		report_workflow(shortreads_QC_workflow.out.fastqc_html,
+						shortreads_trim_workflow.out.fastqc_trim_html,
+						shortreads_assembly_workflow.out.scaffolds,
+						split_assembly_workflow.out.chromosome_path,
+						split_assembly_workflow.out.plasmid_path,
+						split_assembly_workflow.out.phage_path,
+						prokka_scaffolds_workflow.out.prokka_path,
+						prokka_chr_workflow.out.prokka_path,
+						prokka_plasmids_workflow.out.prokka_path,
+						pharokka_workflow.out.pharokka_path,
+						extrachr_workflow.out.plasclass_tsv,
+        				extrachr_workflow.out.checkv_summary,
+        				//SNV_workflow.out.snippy_path,
+        				//assembly2gene_table,
+        				//assembly2gene_aligments,
+        				//assembly2gene_peptides
+						)
 	}
 	//scaffolds_path=ch_in_assembly
 	//assembly_qc_workflow(ch_in_assembly_path)
@@ -340,40 +407,7 @@ workflow{
 
 
 workflow.onComplete { 
-	println ( workflow.success ? "\nDone! Open the following report in your browser --> $params.outdir/report.html\n" : "Oops .. something went wrong" )
+	println ( workflow.success ? "\nDone! Open the following report in your browser --> ${params.outdir}\n" : "Oops .. something went wrong" )
 }
  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

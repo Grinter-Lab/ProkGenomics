@@ -7,27 +7,32 @@ output:
         before_body: logo.svg
 editor_options: 
   chunk_output_type: console
-params:
+params:  
+  version: "prokgenomics_version"
+  github: "https://github.com/Grinter-Lab/ProkGenomics"
   fastqc_r1: "fastqc_r1"
   fastqc_r2: "fastqc_r2"
+  fastqc_trim_r1: "fastqc_trim_r1"
+  fastqc_trim_r2: "fastqc_trim_r2"
   novoassembly_path: "de_novoassembly"
   chromosome_path: "chromosome.fasta"
   plasmid_path: "plasmid.fasta"
   phage_path: "phage.fasta"
-  prokka_path: "prokka_folder"
+  prokka_denovo_folder: "prokka_denovo_folder"
+  prokka_chr_path: "prokka_chr_folder"
+  prokka_plasmids_path: "prokka_plasmids_folder"
   pharokka_path: "pharokka_folder"
   plasmid_class: "plasmid_class"
   phage_class: "phage_class"
-  chromosome_class: "chromosome_class"
+  snippy_path: "snippy_path"
+  assembly2gene_table: "assembly2gene_table"
+  assembly2gene_aligments: "assembly2gene_aligments"
+  assembly2gene_peptides: "assembly2gene_peptides"
+  fastqc_version: 'fastqc_version'
 ---
 
 
-<style type="text/css">
 
-h1.title {
-  font-size: 20px;
-}
-</style>
 
 ```{r setup, include=FALSE}
 
@@ -52,61 +57,137 @@ knitr::opts_chunk$set(
 )
 
 
-
-```
-
-```{r, include=FALSE}
 knitr::opts_chunk$set(warning=FALSE, message = FALSE, echo=FALSE,fig.width =8,fig.height = 6)
+
 ```
+ 
+
+
+```{r results='asis'}
+cat( "<div class='textright'> source code " , params$github, "</div>   \n")
+cat( "<div class='textright'> version ", params$version,"</div>   \n")
+```
+
 
 *** 
-## **Reads Quality**
+# **Results**
+
+#### **Reads quality**
 
 ```{r results='asis'}
-cat( "Quiality control for forward read ", params$novoassembly_path)
+cat( "- **Quality control for forward read:** ", params$fastqc_r1,"   \n")
+cat( "- **Quality control for reverse read:** ", params$fastqc_r2,"   \n")
+cat( "- **Quality control for forward read after trimming:** ", params$fastqc_trim_r1,"   \n")
+cat( "- **Quality control for reverse read  after trimming:** ", params$fastqc_trim_r2,"   \n")
 
 ```
 
 
+#### **Extrachromosomal prediction tables**
+
+```{r results='asis'}
+cat( "- **Plasmid classifications:** ", params$plasmid_class,"   \n")
+cat( "- **Phage classifications:** ", params$phage_class,"   \n")
+
+```
+
+
+#### **Assemblies**
+
+- **De novo assembly**
+
+```{r results='asis'}
+
+cat( "  - **fasta:** ", params$novoassembly_path,"   \n")
+cat( "  - **QC:** ", params$novoassembly_path_QC,"   \n")
+cat( "  - **Annotations** ", params$prokka_denovo_folder,"   \n")
+```
+
+- **Chromosome**
+
+```{r results='asis'}
+
+cat( "  - **fasta:** ",  params$chromosome_path,"   \n")
+cat( "  - **QC:** ", params$novoassembly_path_QC,"   \n")
+cat( "  - **Annotations** ", params$prokka_chr_folder,"   \n")
+```
+
+- **Plasmids**
+
+```{r results='asis'}
+
+cat( "  - **fasta:** ",  params$plasmids_path,"   \n")
+cat( "  - **QC:** ", params$plasmids_path_QC,"   \n")
+cat( "  - **Annotations** ", params$prokka_plasmids_folder,"   \n")
+```
+
+- **Phage**
+
+```{r results='asis'}
+
+cat( "  - **fasta:** ",  params$phage_path,"   \n")
+cat( "  - **QC:** ", params$phage_path_QC,"   \n")
+cat( "  - **Annotations** ", params$pharokka_folder,"   \n")
+```
+
+#### **Comparative genomics**
+
+```{r results='asis'}
+cat( "- **Single Nucleotide Variants (SNV):** ", params$snippy_path,"   \n")
+
+```
+
+#### **Characterization of genes of interest**
+
+```{r results='asis'}
+cat( "- **Genes summary table:** ", params$assembly2gene_table,"   \n")
+cat( "- **Genes aligments:** ", params$assembly2gene_aligments,"   \n")
+cat( "- **Peptides:** ", params$assembly2gene_peptides,"   \n")
+
+```
 
 ***
-## **De-novo Assembly**
+
+# **Methods Summary**
 
 ```{r results='asis'}
-cat( "file is ", params$novoassembly_path)
 
-```
+cat("|Tool|Version|Description|Paper\n")
+cat("| :---|:---- |:---|:---|\n")
+cat( "|[FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)|",params$fastqc_version,"|Sequence quality controls|Andrews S. (2010). FastQC: a quality control tool for high throughput sequence data. Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc|\n")
+cat( "|[Trimmomatic](https://github.com/timflutre/trimmomatic)|",params$fastqc_version,"|Trim primer adaptor from reads|Bolger AM, Lohse M, Usadel B. Trimmomatic: a flexible trimmer for Illumina sequence data. Bioinformatics. 2014 Aug 1;30(15):2114-20. doi: 10.1093/bioinformatics/btu170. Epub 2014 Apr 1. PMID: 24695404; PMCID: PMC4103590. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4103590/|\n")
+cat( "|[Unicycler](https://github.com/rrwick/Unicycler)|",params$fastqc_version,"|De novo assembly|Wick RR, Judd LM, Gorrie CL, Holt KE (2017) Unicycler: Resolving bacterial genome assemblies from short and long sequencing reads. PLOS Computational Biology 13(6): e1005595. https://doi.org/10.1371/journal.pcbi.1005595|\n")
+cat( "|[Plasclass](https://github.com/Shamir-Lab/PlasClass)|",params$fastqc_version,"|Plasmids prediction|Pellow D, Mizrahi I, Shamir R (2020) PlasClass improves plasmid sequence classification. PLOS Computational Biology 16(4): e1007781. https://doi.org/10.1371/journal.pcbi.1007781|\n")
+cat( "|[CheckV](https://bitbucket.org/berkeleylab/checkv/src/master/)|",params$fastqc_version,"|Phage prediction|Nayfach, S., Camargo, A.P., Schulz, F. et al. CheckV assesses the quality and completeness of metagenome-assembled viral genomes. Nat Biotechnol 39, 578–585 (2021). https://doi.org/10.1038/s41587-020-00774-7|\n")
+cat( "|[Prokka](https://github.com/tseemann/prokka)|",params$fastqc_version,"|Prokaryotic gene annotation|Torsten Seemann, Prokka: rapid prokaryotic genome annotation, Bioinformatics, Volume 30, Issue 14, July 2014, Pages 2068–2069, https://doi.org/10.1093/bioinformatics/btu153|\n")
+cat( "|[Pharokka](https://github.com/gbouras13/pharokka)|",params$fastqc_version,"|Phage gene annotation|Bouras G, Nepal R, Houtak G, Psaltis AJ, Wormald PJ, Vreugde S. Pharokka: a fast scalable bacteriophage annotation tool. Bioinformatics. 2023 Jan 1;39(1):btac776. doi: 10.1093/bioinformatics/btac776. PMID: 36453861; PMCID: PMC9805569. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9805569/|\n")
+cat( "|[CheckM](https://github.com/Ecogenomics/CheckM)|",params$fastqc_version,"|Assembly quality controls|Parks DH, Imelfort M, Skennerton CT, Hugenholtz P, Tyson GW. CheckM: assessing the quality of microbial genomes recovered from isolates, single cells, and metagenomes. Genome Res. 2015 Jul;25(7):1043-55. doi: 10.1101/gr.186072.114. Epub 2015 May 14. PMID: 25977477; PMCID: PMC4484387. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4484387/|\n")
+cat( "|[Snippy](https://github.com/tseemann/snippy)|",params$fastqc_version,"|Single Nucleotide Variant (SNV) detection|\n")
 
-***
-## **Extrachromosomal Elements**
 
-```{r results='asis'}
-cat( "file is ", params$novoassembly_path)
 
-```
 
-***
-## **Annotations**
 
-```{r results='asis'}
-cat( "file is ", params$novoassembly_path)
 
-```
-***
-## **Comparative genomics**
 
-```{r results='asis'}
-cat( "file is ", params$novoassembly_path)
-
-```
-
-***
-## **Characterization of genes of interest**
-
-```{r results='asis'}
-cat( "file is ", params$novoassembly_path)
 
 ```
 
 
 
+<style type="text/css">
+
+h1.title {
+  font-size: 16px;
+  color: DarkGray;
+  text-align: right;
+  
+}
+
+.textright {
+  font-size: 16px;
+  color: DarkGray;
+  text-align: right;
+
+}
+</style>

@@ -36,8 +36,12 @@ process fastqc {
         software = "${params.software_versions}"
         """
         cmd="fastqc ${reads}"
+        echo "version"  >> ${software}
         fastqc --version >> ${software}
+        echo "version" >>  ${software}
+     
         echo "\${cmd}" >>  ${software}
+      
         \${cmd}
         """
 }
@@ -93,7 +97,9 @@ process trimmomatic {
             ILLUMINACLIP:${adapter}:2:30:10"
 
         echo  -n 'trimmomatic '  >> ${software}
+        echo "version" >>  ${software}
         trimmomatic -version >> ${software}
+        echo "version" >>  ${software}
         echo "\${cmd}" >>  ${software}
         \${cmd}
         """
@@ -131,8 +137,12 @@ process unicycler_short {
         task.cpus="${params.threads}"
         """
         cmd="unicycler --threads ${task.cpus} -1 ${reads[0]} -2  ${reads[2]} --out ${prefix}" 
-        echo "\${cmd}" >>  ${software}
+
+        echo "version" >>  ${software}
         unicycler --version >> ${software}
+        echo "version" >>  ${software}
+        echo "\${cmd}" >>  ${software}
+  
         \${cmd}
         """
 }
@@ -212,9 +222,10 @@ process checkm {
         
         \${cmd}
 
-        echo "\${cmd}" >>  ${software}
+        echo "version" >>  ${software}
         checkm 2>&1 | grep '...:::' | sed 's/.*CheckM v//;s/ .*//'  >>  ${software}
-
+        echo "version" >>  ${software}
+        echo "\${cmd}" >>  ${software}
         """
 }
 
@@ -255,16 +266,21 @@ process checkv {
         task.cpus="${params.threads}"
         software="${params.software_versions}"
         """
-        chmod a+x $baseDir/scripts/db_checkv.sh
-        checkv download_database ./ || ./$baseDir/scripts/db_checkv.sh
+        ln -s $baseDir/scripts/db_checkv.sh
+        chmod a+x db_checkv.sh
+        checkv download_database ./ || ./db_checkv.sh
 
         cmd="checkv end_to_end ${scaffolds} ${prefix} -t ${task.cpus} -d checkv-db*" 
         echo "\${cmd}" >>  ${software}
         
         \${cmd}
         
+        echo "version" >>  ${software}
+        checkv |head -1 >>  ${software}
+        echo "version" >>  ${software}
+        
         echo "\${cmd}" >>  ${software}
-         checkv |head -1 >>  ${software}
+
 
         """
 }
@@ -305,6 +321,11 @@ process plasclass {
         
         cmd="classify_fasta.py -f ${scaffolds} -p ${task.cpus} -o ${prefix}.probs.out"
         \${cmd}
+
+        echo "version" >>  ${software}
+        echo "plasclass 0.1.1" ${software}
+        echo "version" >>  ${software}
+
         echo "\${cmd}" >>  ${software}
 
         """
@@ -345,8 +366,11 @@ process prokka {
         cmd="prokka --outdir ${prefix}_${element}_prokka_annotation --prefix ${prefix} --cpus ${task.cpus} ${contigs_bacteria}"
         \${cmd}
   
-        echo "\${cmd}" >>  ${software}
+        echo "version" >>  ${software}
         prokka --version >> ${software}
+        echo "version" >>  ${software}
+        echo "\${cmd}" >>  ${software}
+
         """
 
 }
@@ -389,8 +413,12 @@ process pharokka {
         cmd="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus} -meta"
         \${cmd}
 
-        echo "\${cmd}" >>  ${software}
+        echo "version" >>  ${software}
         pharokka.py --version >> ${software}
+        echo "version" >>  ${software}
+
+        echo "\${cmd}" >>  ${software}
+
 
         """
 
@@ -438,8 +466,12 @@ process snippy {
 
     \${cmd}
 
-    echo "\${cmd}" >>  ${software}
+    echo "version" >>  ${software}
     snippy --version >> ${software}
+    echo "version" >>  ${software}
+
+    echo "\${cmd}" >>  ${software} 
+
     """
 
 }
@@ -516,10 +548,10 @@ process split_assembly {
         path (checkv_summary)
     
     output:
-        tuple val(prefix), path("${prefix}_de_novoassembly.fasta"), emit: novoassembly_path
-        tuple val(prefix), path("${prefix}_chromosome.fasta"), emit: chromosome_path
-        tuple val(prefix), path("${prefix}_plasmid.fasta"), emit: plasmid_path
-        tuple val(prefix), path("${prefix}_phage.fasta"), emit: phage_path
+        tuple val(prefix), path("${prefix}_de_novoassembly.fasta"), emit: novoassembly_path, optional: true
+        tuple val(prefix), path("${prefix}_chromosome.fasta"), emit: chromosome_path, optional: true
+        tuple val(prefix), path("${prefix}_plasmid.fasta"), emit: plasmid_path, optional: true
+        tuple val(prefix), path("${prefix}_phage.fasta"), emit: phage_path, optional: true
         
     script:
 
@@ -562,93 +594,86 @@ process split_assembly {
 
 
 process report{
+    publishDir "${params.outdir}",
+        mode: params.publish_dir_mode
+
+conda (params.enable_conda ? "conda-forge::markdown" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/r-markdown%3A0.8--r3.4.1_1"
+    } else {
+        container "quay.io/biocontainers/R"
+    }
+
     input:
-        val (fastqc_r1)
-        val (fastqc_r2)
-        val (fastqc_trim_r1)
-        val (fastqc_trim_r2)
-        val (novoassembly_path)
-        val (chromosome_path)
-        val (plasmid_path)
-        val (phage_path)
-        val (prokka_denovo_folder)
-        val ( prokka_chr_path)
-        val (prokka_plasmids_path)
-        val (pharokka_path)
-        val (pharokka_path)
-        val (plasmid_class)
-        val (phage_class)
-        val (snippy_path)
-        val (assembly2gene_table)
-        val (assembly2gene_aligments)
-        val (assembly2gene_peptides)
+        tuple val(prefix), path (fastqc_html) 
+        tuple val(prefix), path (fastqc_trim_html)
+        tuple val(prefix), path (novoassembly_path)
+        tuple val(prefix), path (chromosome_path)
+        tuple val(prefix), path (plasmid_path)
+        tuple val(prefix), path (phage_path)
+        tuple val(prefix), path (prokka_denovo_folder)
+        tuple val(prefix), path (prokka_chr_path)
+        tuple val(prefix), path (prokka_plasmids_path)
+        tuple val(prefix), path (pharokka_path)
+        tuple val(prefix), path (pharokka_path)
+        tuple val(prefix), path (plasmid_class)
+        tuple val(prefix), path (phage_class)
+        //tuple val(prefix), path (snippy_path)
+        //tuple val(prefix), path (assembly2gene_table)
+        //tuple val(prefix), path (assembly2gene_aligments)
+        //tuple val(prefix), path (assembly2gene_peptides)
   
     output:
-        tuple val(prefix), path(" ${params.outdir}/${prefix}_ProkGenomics_report.html"), emit: report_path
+        tuple val(prefix), path("${prefix}_ProkGenomics_report.html"), emit: report_path
 
 
     script:
         task.cpus="${params.threads}"
-        software = "${params.software_versions}"
-        rmd = "${params.report}"
+        software= "${params.software_versions}"
         version= "${params.version}"
         github="${params.github}"
         report_template="${params.report_template}"
-       
+
         """
-        Rscript -e  'rmarkdown::render(input  = ${rmd}, 
+        touch ${prefix}_ProkGenomics_report.html
+        echo " 
+       
+        Rscript -e  'rmarkdown::render(input  = ${report_template}, 
                                        params=list(  
                                         version=  ${version},                                   
                                         github= ${github},
-                                        fastqc_r1= "fastqc_r1",
-                                        fastqc_r2= "fastqc_r2",
-                                        fastqc_trim_r1= "fastqc_trim_r1",
-                                        fastqc_trim_r2= "fastqc_trim_r2",
-                                        novoassembly_path= "de_novoassembly",
-                                        chromosome_path= "chromosome.fasta",
-                                        plasmid_path= "plasmid.fasta",
-                                        phage_path= "phage.fasta",
-                                        prokka_denovo_folder= "prokka_denovo_folder",
-                                        prokka_chr_path= "prokka_chr_folder",
-                                        prokka_plasmids_path= "prokka_plasmids_folder",
-                                        pharokka_path= "pharokka_folder",
-                                        plasmid_class= "plasmid_class",
-                                        phage_class= "phage_class",
-                                        snippy_path= "snippy_path",
-                                        assembly2gene_table= "assembly2gene_table",
-                                        assembly2gene_aligments= "assembly2gene_aligments",
-                                        assembly2gene_peptides= "assembly2gene_peptides",
+                                        fastqc_r1= ${params.outdir}/fastqc/${fastqc_html[0]},
+                                        fastqc_r2= ${params.outdir}/fastqc/${fastqc_html[1]},
+                                        fastqc_trim_r1= ${params.outdir}/fastqc/${fastqc_trim_html[0]},
+                                        fastqc_trim_r2= ${params.outdir}/fastqc/${fastqc_trim_html[2]},
+                                        novoassembly_path= ${params.outdir}/unicycler/${novoassembly_path},
+                                        chromosome_path= ${params.outdir}/splitting_assemblies/${chromosome_path},
+                                        plasmid_path= ${params.outdir}/splitting_assemblies/${plasmid_path},
+                                        phage_path= ${params.outdir}/splitting_assemblies/${phage_path},
+                                        prokka_denovo_folder= ${params.outdir}/prokka/${prokka_denovo_folder},
+                                        prokka_chr_path= ${params.outdir}/prokka/${prokka_chr_folder},
+                                        prokka_plasmids_path= ${params.outdir}/prokka/${prokka_plasmids_folder},
+                                        pharokka_path= ${params.outdir}/pharokka/${pharokka_folder},
+                                        plasmid_class= ${params.outdir}/plasclass/${plasmid_class},
+                                        phage_class= ${params.outdir}/checkv/${phage_class},
+                                        snippy_path= ${params.outdir}/snippy/${snippy_path},
+                                        assembly2gene_table= ${params.outdir}/assembly2gene/${assembly2gene_table},
+                                        assembly2gene_aligments= ${params.outdir}/assembly2gene/${assembly2gene_aligments},
+                                        assembly2gene_peptides= ${params.outdir}/assembly2gene/${assembly2gene_peptides},
                                          ),
-                                        output_file = ${params.outdir}/${prefix}_ProkGenomics_report.html)
-
-
-
-for (cluster in celltypes){
-  print(cluster)
-  rmarkdown::render(
-  input  = 'Pseudobulk_template.Rmd', 
-  params=list(  cluster_input=cluster),
-  output_dir = paste0("pseudobulk"),
-  output_file = c(paste0("Pseudobulk",gsub(" ","", cluster),".html"))
-  )
-}
-
-
-  # tuple val(prefix), path("${prefix}_de_novoassembly.fasta"), emit: novoassembly_path
-  #  tuple val(prefix), path("${prefix}_chromosome.fasta"), emit: chromosome_path
-  #  tuple val(prefix), path("${prefix}_plasmid.fasta"), emit: plasmid_path
-  #  tuple val(prefix), path("${prefix}_phage.fasta"), emit: phage_path
-
-        ln -s ${scaffolds_path} ${prefix}_de_novoassembly.fasta
-        ln -s ${prokka_path} 
-        ln -s ${pharokka_path}
-
+                                        output_file = ${params.outdir}/${prefix}_ProkGenomics_report.html
+)
+                                       
+            " >${prefix}_ProkGenomics_report.html
      
         """
 
 
 
 }
+
+// check the version 
+//sed -n '/version/, /version/{ /version/!p }' software_details.txt 
 
 /*process Deleting_work_directory{
     input:
