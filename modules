@@ -598,12 +598,15 @@ process report{
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode
 
-conda (params.enable_conda ? "conda-forge::markdown" : null)
-    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
-        container "https://depot.galaxyproject.org/singularity/r-markdown%3A0.8--r3.4.1_1"
-    } else {
-        container "quay.io/biocontainers/R"
-    }
+    //errorStrategy 'ignore'
+
+    conda ( "r-rmarkdown" )
+ //   if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+   //     container "https://depot.galaxyproject.org/singularity/r-rmarkdown%3A0.9.5--0"
+        // container "https://depot.galaxyproject.org/singularity/r-markdown%3A0.8--r3.4.1_1"
+   // } else {
+     //   container "quay.io/biocontainers/R"
+    //}
 
     input:
         tuple val(prefix), path (fastqc_html) 
@@ -636,31 +639,30 @@ conda (params.enable_conda ? "conda-forge::markdown" : null)
 
         """
         ln -s ${params.report_template}
-        Rscript -e  'rmarkdown::render(input  = ${report_template}, 
-                                       params=list(  
-                                        version=  ${version},                                   
-                                        github= ${github},
-                                        fastqc_r1= ${params.outdir}/fastqc/${fastqc_html[0]},
-                                        fastqc_r2= ${params.outdir}/fastqc/${fastqc_html[1]},
-                                        fastqc_trim_r1= ${params.outdir}/fastqc/${fastqc_trim_html[0]},
-                                        fastqc_trim_r2= ${params.outdir}/fastqc/${fastqc_trim_html[2]},
-                                        novoassembly_path= ${params.outdir}/unicycler/${novoassembly_path},
-                                        chromosome_path= ${params.outdir}/splitting_assemblies/${chromosome_path},
-                                        plasmid_path= ${params.outdir}/splitting_assemblies/${plasmid_path},
-                                        phage_path= ${params.outdir}/splitting_assemblies/${phage_path},
-                                        prokka_denovo_path= ${params.outdir}/prokka/${prokka_denovo_path},
-                                        prokka_chr_path= ${params.outdir}/prokka/${prokka_chr_path},
-                                        prokka_plasmids_path= ${params.outdir}/prokka/${prokka_plasmids_path},
-                                        pharokka_path= ${params.outdir}/pharokka/${pharokka_path},
-                                        plasmid_class= ${params.outdir}/plasclass/${plasmid_class},
-                                        phage_class= ${params.outdir}/checkv/${phage_class},
-                                        snippy_path= ${params.outdir}/snippy/ {snippy_path},
-                                        assembly2gene_table= ${params.outdir}/assembly2gene/ {assembly2gene_table},
-                                        assembly2gene_aligments= ${params.outdir}/assembly2gene/ {assembly2gene_aligments},
-                                        assembly2gene_peptides= ${params.outdir}/assembly2gene/ {assembly2gene_peptides},
-                                         ),
-                                        output_file = ${params.outdir}/${prefix}_ProkGenomics_report.html
-)
+        ln -s ${params.logo}
+        #Rscript -e 'Sys.getenv("RSTUDIO_PANDOC")'
+        #Rscript -e 'rmarkdown::pandoc_exec()'
+        #pandoc -v
+
+        Rscript -e 'rmarkdown::render( input  = "${report_template}", 
+                                        params=list(  version=  "${version}", 
+                                            github= "${github}",
+                                            fastqc_r1= "${params.outdir}/fastqc/${fastqc_html[0]}",
+                                            fastqc_r2= "${params.outdir}/fastqc/${fastqc_html[1]}",
+                                            fastqc_trim_r1= "${params.outdir}/fastqc/${fastqc_trim_html[0]}",
+                                            fastqc_trim_r2= "${params.outdir}/fastqc/${fastqc_trim_html[2]}",
+                                            novoassembly_path= "${params.outdir}/unicycler/${novoassembly_path}",
+                                            chromosome_path= "${params.outdir}/splitting_assemblies/${chromosome_path}",
+                                            plasmid_path= "${params.outdir}/splitting_assemblies/${plasmid_path}",
+                                            phage_path= "${params.outdir}/splitting_assemblies/${phage_path}",
+                                            prokka_denovo_path= "${params.outdir}/prokka/${prokka_denovo_path}",
+                                            prokka_chr_path= "${params.outdir}/prokka/${prokka_chr_path}",
+                                            prokka_plasmids_path= "${params.outdir}/prokka/${prokka_plasmids_path}",
+                                            pharokka_path= "${params.outdir}/pharokka/${pharokka_path}",
+                                            plasmid_class= "${params.outdir}/plasclass/${plasmid_class}",
+                                            phage_class= "${params.outdir}/checkv/${phage_class}"),
+                                        output_dir = "./",
+                                        output_file = "${prefix}_ProkGenomics_report.html")'
                                        
      
         """

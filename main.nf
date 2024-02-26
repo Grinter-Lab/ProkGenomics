@@ -55,7 +55,9 @@ params.adapter_file="TruSeq3-PE.fa"
 params.assembly=null
 params.version="version 1.0.0"
 params.report_template="$baseDir/scripts/report.Rmd"
+params.logo="$baseDir/scripts/Logo.svg"
 params.github="https://github.com/Grinter-Lab/ProkGenomics"
+params.default_empty_file="$baseDir/scripts/NO_APPLICABLE"
 /*************************************************************************************************************************************************************
  * Channels
  read parameters in the command line 
@@ -106,7 +108,19 @@ If the assembly has been done provide assembly file
 			.set{ch_in_assembly}		
 	}
 
- 	
+
+/*
+Set defaul channels for omitted steps
+*/
+
+myDefaultInputFile = Channel.fromPath(params.default_empty_file)
+
+/*
+chInputProcessTwo = chNewInputForProcessTwo.ifEmpty(myDefaultInputFile)
+
+snippy_output = chNewInputForProcessTwo.ifEmpty(myDefaultInputFile)
+*/
+
 /*
 Define a env or container
 */
@@ -237,8 +251,8 @@ workflow split_assembly_workflow{
 	emit:
 		novoassembly_path=split_assembly.out.novoassembly_path
     	chromosome_path=split_assembly.out.chromosome_path
-    	plasmid_path=split_assembly.out.plasmid_path
-    	phage_path=split_assembly.out.phage_path
+    	plasmid_path=split_assembly.out.plasmid_path.ifEmpty(myDefaultInputFile)
+    	phage_path=split_assembly.out.phage_path.ifEmpty(myDefaultInputFile)
 }
 
 workflow prokka_scaffolds_workflow{
@@ -269,7 +283,7 @@ workflow prokka_plasmids_workflow{
 	main:
 		prokka(contigs,plasmid)
 	emit:
-		prokka_path=prokka.out.prokka_path
+		prokka_path=prokka.out.prokka_path.ifEmpty(myDefaultInputFile)
 }
 
 workflow pharokka_workflow{
@@ -278,7 +292,7 @@ workflow pharokka_workflow{
 	main:
 		pharokka(contigs)
 	emit:
-		pharokka_path=pharokka.out.pharokka_path
+		pharokka_path=pharokka.out.pharokka_path.ifEmpty(myDefaultInputFile)
 }
 
 workflow report_workflow{
@@ -331,7 +345,7 @@ workflow SNV_workflow{
 	main:
 		snippy(ch_in_reference,trimmed_reads)
 	emit:
-		snippy_path= snippy.out.snippy_path
+		snippy_path= snippy.out.snippy_path.ifEmpty(myDefaultInputFile)
 }
 
 /************************************************************************************************************************************************************** 

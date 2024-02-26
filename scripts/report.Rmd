@@ -4,7 +4,7 @@ output:
   html_document:
     theme: flatly
     include:
-        before_body: logo.svg
+        before_body: Logo.svg
 editor_options: 
   chunk_output_type: console
 params:  
@@ -65,7 +65,7 @@ knitr::opts_chunk$set(warning=FALSE, message = FALSE, echo=FALSE,fig.width =8,fi
 
 ```{r results='asis'}
 cat( "<div class='textright'> source code " , params$github, "</div>   \n")
-cat( "<div class='textright'> version ", params$version,"</div>   \n")
+cat( "<div class='textright'> ProkGenomics ", params$version,"</div>   \n")
 ```
 
 
@@ -100,7 +100,7 @@ cat( "- **Phage classifications:** ", params$phage_class,"   \n")
 
 cat( "  - **fasta:** ", params$novoassembly_path,"   \n")
 cat( "  - **QC:** ", params$novoassembly_path_QC,"   \n")
-cat( "  - **Annotations** ", params$prokka_denovo_folder,"   \n")
+cat( "  - **Annotations** ", params$prokka_denovo_path,"   \n")
 ```
 
 - **Chromosome**
@@ -109,7 +109,7 @@ cat( "  - **Annotations** ", params$prokka_denovo_folder,"   \n")
 
 cat( "  - **fasta:** ",  params$chromosome_path,"   \n")
 cat( "  - **QC:** ", params$novoassembly_path_QC,"   \n")
-cat( "  - **Annotations** ", params$prokka_chr_folder,"   \n")
+cat( "  - **Annotations** ", params$prokka_chr_path,"   \n")
 ```
 
 - **Plasmids**
@@ -118,7 +118,7 @@ cat( "  - **Annotations** ", params$prokka_chr_folder,"   \n")
 
 cat( "  - **fasta:** ",  params$plasmids_path,"   \n")
 cat( "  - **QC:** ", params$plasmids_path_QC,"   \n")
-cat( "  - **Annotations** ", params$prokka_plasmids_folder,"   \n")
+cat( "  - **Annotations** ", params$prokka_plasmids_path,"   \n")
 ```
 
 - **Phage**
@@ -127,7 +127,7 @@ cat( "  - **Annotations** ", params$prokka_plasmids_folder,"   \n")
 
 cat( "  - **fasta:** ",  params$phage_path,"   \n")
 cat( "  - **QC:** ", params$phage_path_QC,"   \n")
-cat( "  - **Annotations** ", params$pharokka_folder,"   \n")
+cat( "  - **Annotations** ", params$pharokka_path,"   \n")
 ```
 
 #### **Comparative genomics**
