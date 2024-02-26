@@ -286,13 +286,12 @@ workflow report_workflow{
 		fastqc_html 
 		fastqc_trim_html 
     	novoassembly_path
-        chromosome_path
+       	chromosome_path
         plasmid_path
         phage_path
-        prokka_denovo_folder
+        prokka_denovo_path
         prokka_chr_path
         prokka_plasmids_path
-        pharokka_path
         pharokka_path
         plasmid_class
         phage_class
@@ -307,13 +306,12 @@ workflow report_workflow{
         chromosome_path,
         plasmid_path,
         phage_path,
-        prokka_denovo_folder,
+        prokka_denovo_path,
         prokka_chr_path,
         prokka_plasmids_path,
         pharokka_path,
-        pharokka_path,
         plasmid_class,
-        phage_class,
+        phage_class
         //snippy_path,
         //assembly2gene_table,
         //assembly2gene_aligments,
@@ -380,7 +378,7 @@ workflow{
 						prokka_plasmids_workflow.out.prokka_path,
 						pharokka_workflow.out.pharokka_path,
 						extrachr_workflow.out.plasclass_tsv,
-        				extrachr_workflow.out.checkv_summary,
+        				extrachr_workflow.out.checkv_summary
         				//SNV_workflow.out.snippy_path,
         				//assembly2gene_table,
         				//assembly2gene_aligments,

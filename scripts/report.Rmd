@@ -18,7 +18,7 @@ params:
   chromosome_path: "chromosome.fasta"
   plasmid_path: "plasmid.fasta"
   phage_path: "phage.fasta"
-  prokka_denovo_folder: "prokka_denovo_folder"
+  prokka_denovo_path: "prokka_denovo_folder"
   prokka_chr_path: "prokka_chr_folder"
   prokka_plasmids_path: "prokka_plasmids_folder"
   pharokka_path: "pharokka_folder"

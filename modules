@@ -355,7 +355,7 @@ process prokka {
         val (element)
 
     output:
-        path "${prefix}_${element}_prokka_annotation" , emit: prokka_path
+        tuple val(prefix), path ("${prefix}_${element}_prokka_annotation") , emit: prokka_path
         path  "*details.txt" , emit: version
         path ".*.log" , emit: prokka_log
 
@@ -389,7 +389,7 @@ process pharokka {
         mode: params.publish_dir_mode
 
 //use container
-    conda (params.enable_conda ? "pyhmmer=0.10.5 bioconda::pharokka" : null)
+    conda (params.enable_conda ? "bioconda::pharokka" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
         container "https://depot.galaxyproject.org/singularity/pharokka%3A1.5.1--pyhdfd78af_0"
     } else {
@@ -400,7 +400,7 @@ process pharokka {
         tuple val(prefix), file(contigs_phage)
 
     output:
-        path "${prefix}_phage_pharokka_annotation" , emit: pharokka_path, optional: true
+        tuple val(prefix), path ("${prefix}_phage_pharokka_annotation") , emit: pharokka_path, optional: true
         path  "*details.txt" , emit: version, optional: true
         path ".*.log" , emit: pharokka_log, optional: true
 
@@ -408,6 +408,7 @@ process pharokka {
         task.cpus="${params.threads}"
         software = "${params.software_versions}"
         """
+        ln -s $baseDir/scripts/db_pharokka.sh
         chmod a+x $baseDir/scripts/db_pharokka.sh
         install_databases.py -o pharokka_databases || ./$baseDir/scripts/db_pharokka.sh
         cmd="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus} -meta"
@@ -611,14 +612,13 @@ conda (params.enable_conda ? "conda-forge::markdown" : null)
         tuple val(prefix), path (chromosome_path)
         tuple val(prefix), path (plasmid_path)
         tuple val(prefix), path (phage_path)
-        tuple val(prefix), path (prokka_denovo_folder)
+        tuple val(prefix), path (prokka_denovo_path)
         tuple val(prefix), path (prokka_chr_path)
         tuple val(prefix), path (prokka_plasmids_path)
         tuple val(prefix), path (pharokka_path)
-        tuple val(prefix), path (pharokka_path)
-        tuple val(prefix), path (plasmid_class)
-        tuple val(prefix), path (phage_class)
-        //tuple val(prefix), path (snippy_path)
+        path (plasmid_class)
+        path (phage_class)
+        //path (snippy_path)
         //tuple val(prefix), path (assembly2gene_table)
         //tuple val(prefix), path (assembly2gene_aligments)
         //tuple val(prefix), path (assembly2gene_peptides)
@@ -635,9 +635,7 @@ conda (params.enable_conda ? "conda-forge::markdown" : null)
         report_template="${params.report_template}"
 
         """
-        touch ${prefix}_ProkGenomics_report.html
-        echo " 
-       
+        ln -s ${params.report_template}
         Rscript -e  'rmarkdown::render(input  = ${report_template}, 
                                        params=list(  
                                         version=  ${version},                                   
@@ -650,21 +648,20 @@ conda (params.enable_conda ? "conda-forge::markdown" : null)
                                         chromosome_path= ${params.outdir}/splitting_assemblies/${chromosome_path},
                                         plasmid_path= ${params.outdir}/splitting_assemblies/${plasmid_path},
                                         phage_path= ${params.outdir}/splitting_assemblies/${phage_path},
-                                        prokka_denovo_folder= ${params.outdir}/prokka/${prokka_denovo_folder},
-                                        prokka_chr_path= ${params.outdir}/prokka/${prokka_chr_folder},
-                                        prokka_plasmids_path= ${params.outdir}/prokka/${prokka_plasmids_folder},
-                                        pharokka_path= ${params.outdir}/pharokka/${pharokka_folder},
+                                        prokka_denovo_path= ${params.outdir}/prokka/${prokka_denovo_path},
+                                        prokka_chr_path= ${params.outdir}/prokka/${prokka_chr_path},
+                                        prokka_plasmids_path= ${params.outdir}/prokka/${prokka_plasmids_path},
+                                        pharokka_path= ${params.outdir}/pharokka/${pharokka_path},
                                         plasmid_class= ${params.outdir}/plasclass/${plasmid_class},
                                         phage_class= ${params.outdir}/checkv/${phage_class},
-                                        snippy_path= ${params.outdir}/snippy/${snippy_path},
-                                        assembly2gene_table= ${params.outdir}/assembly2gene/${assembly2gene_table},
-                                        assembly2gene_aligments= ${params.outdir}/assembly2gene/${assembly2gene_aligments},
-                                        assembly2gene_peptides= ${params.outdir}/assembly2gene/${assembly2gene_peptides},
+                                        snippy_path= ${params.outdir}/snippy/ {snippy_path},
+                                        assembly2gene_table= ${params.outdir}/assembly2gene/ {assembly2gene_table},
+                                        assembly2gene_aligments= ${params.outdir}/assembly2gene/ {assembly2gene_aligments},
+                                        assembly2gene_peptides= ${params.outdir}/assembly2gene/ {assembly2gene_peptides},
                                          ),
                                         output_file = ${params.outdir}/${prefix}_ProkGenomics_report.html
 )
                                        
-            " >${prefix}_ProkGenomics_report.html
      
         """
 
