@@ -418,8 +418,9 @@ workflow{
 }
 
 
+
 workflow.onComplete { 
-	println ( workflow.success ? "\nDone! Open the following report in your browser --> ${params.outdir}\n" : "Oops .. something went wrong" )
+	println ( workflow.success ? "\nDone! see the report in ${params.outdir} for more details \n" : "Oops .. something went wrong" )
 }
  
 

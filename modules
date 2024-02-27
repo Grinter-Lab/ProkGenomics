@@ -644,23 +644,28 @@ process report{
         #Rscript -e 'rmarkdown::pandoc_exec()'
         #pandoc -v
 
+        fastqc_v=`sed -n '/version/, /version/{ /version/!p }' ${params.outdir}/fastqc/software_details.txt`
+        echo \$fastqc_v
         Rscript -e 'rmarkdown::render( input  = "${report_template}", 
-                                        params=list(  version=  "${version}", 
-                                            github= "${github}",
-                                            fastqc_r1= "${params.outdir}/fastqc/${fastqc_html[0]}",
-                                            fastqc_r2= "${params.outdir}/fastqc/${fastqc_html[1]}",
-                                            fastqc_trim_r1= "${params.outdir}/fastqc/${fastqc_trim_html[0]}",
-                                            fastqc_trim_r2= "${params.outdir}/fastqc/${fastqc_trim_html[2]}",
-                                            novoassembly_path= "${params.outdir}/unicycler/${novoassembly_path}",
-                                            chromosome_path= "${params.outdir}/splitting_assemblies/${chromosome_path}",
-                                            plasmid_path= "${params.outdir}/splitting_assemblies/${plasmid_path}",
-                                            phage_path= "${params.outdir}/splitting_assemblies/${phage_path}",
-                                            prokka_denovo_path= "${params.outdir}/prokka/${prokka_denovo_path}",
-                                            prokka_chr_path= "${params.outdir}/prokka/${prokka_chr_path}",
-                                            prokka_plasmids_path= "${params.outdir}/prokka/${prokka_plasmids_path}",
-                                            pharokka_path= "${params.outdir}/pharokka/${pharokka_path}",
-                                            plasmid_class= "${params.outdir}/plasclass/${plasmid_class}",
-                                            phage_class= "${params.outdir}/checkv/${phage_class}"),
+                                        params=list(
+                                                    version=  "${version}", 
+                                                    github= "${github}",
+                                                    fastqc_r1= "${params.outdir}/fastqc/${fastqc_html[0]}",
+                                                    fastqc_r2= "${params.outdir}/fastqc/${fastqc_html[1]}",
+                                                    fastqc_trim_r1= "${params.outdir}/fastqc/${fastqc_trim_html[0]}",
+                                                    fastqc_trim_r2= "${params.outdir}/fastqc/${fastqc_trim_html[2]}",
+                                                    novoassembly_path= "${params.outdir}/unicycler/${novoassembly_path}",
+                                                    chromosome_path= "${params.outdir}/splitting_assemblies/${chromosome_path}",
+                                                    plasmid_path= "${params.outdir}/splitting_assemblies/${plasmid_path}",
+                                                    phage_path= "${params.outdir}/splitting_assemblies/${phage_path}",
+                                                    prokka_denovo_path= "${params.outdir}/prokka/${prokka_denovo_path}",
+                                                    prokka_chr_path= "${params.outdir}/prokka/${prokka_chr_path}",
+                                                    prokka_plasmids_path= "${params.outdir}/prokka/${prokka_plasmids_path}",
+                                                    pharokka_path= "${params.outdir}/pharokka/${pharokka_path}",
+                                                    plasmid_class= "${params.outdir}/plasclass/${plasmid_class}",
+                                                    phage_class= "${params.outdir}/checkv/${phage_class}",
+                                                    fastqc_version= paste(Sys.getenv("fastqc_v"))
+                                                    ),
                                         output_dir = "./",
                                         output_file = "${prefix}_ProkGenomics_report.html")'
                                        
