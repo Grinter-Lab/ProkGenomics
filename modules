@@ -482,7 +482,7 @@ process snippy {
 **************************************************************************************************************************************************************/
 
 
-process GTDBTK_CLASSIFYWF {
+process GTDB {
 	publishDir "${params.outdir}/GTDB",
         mode: params.publish_dir_mode
 
@@ -499,15 +499,15 @@ process GTDBTK_CLASSIFYWF {
         path(mash_db)
 
     output:
-        tuple val(prefix), path("gtdbtk.${prefix}.*.summary.tsv")         , emit: summary
-        tuple val(prefix), path("gtdbtk.${prefix}.*.classify.tree.gz")    , emit: tree, optional: true
-        tuple val(prefix), path("gtdbtk.${prefix}.*.markers_summary.tsv") , emit: markers, optional: true
-        tuple val(prefix), path("gtdbtk.${prefix}.*.msa.fasta.gz")        , emit: msa, optional: true
-        tuple val(prefix), path("gtdbtk.${prefix}.*.user_msa.fasta.gz")   , emit: user_msa, optional: true
-        tuple val(prefix), path("gtdbtk.${prefix}.*.filtered.tsv")        , emit: filtered, optional: true
-        tuple val(prefix), path("gtdbtk.${prefix}.failed_genomes.tsv")    , emit: failed, optional: true
-        tuple val(prefix), path("gtdbtk.${prefix}.log")                   , emit: log
-        tuple val(prefix), path("gtdbtk.${prefix}.warnings.log")          , emit: warnings
+        tuple val(prefix), path("gtdbtk.${prefix}.*.summary.tsv")         , emit: gtdbtk_summary
+        tuple val(prefix), path("gtdbtk.${prefix}.*.classify.tree.gz")    , emit: gtdbtk_tree, optional: true
+        tuple val(prefix), path("gtdbtk.${prefix}.*.markers_summary.tsv") , emit: gtdbtk_markers, optional: true
+        tuple val(prefix), path("gtdbtk.${prefix}.*.msa.fasta.gz")        , emit: gtdbtk_msa, optional: true
+        tuple val(prefix), path("gtdbtk.${prefix}.*.user_msa.fasta.gz")   , emit: gtdbtk_user_msa, optional: true
+        tuple val(prefix), path("gtdbtk.${prefix}.*.filtered.tsv")        , emit: gtdbtk_filtered, optional: true
+        tuple val(prefix), path("gtdbtk.${prefix}.failed_genomes.tsv")    , emit: gtdbtk_failed, optional: true
+        tuple val(prefix), path("gtdbtk.${prefix}.log")                   , emit: gtdbtk_log
+        tuple val(prefix), path("gtdbtk.${prefix}.warnings.log")          , emit: gtdbtk_warnings
         path  "*details.txt" , emit: version
         path ".*.log" , emit: gtdbtk_log
 
@@ -517,11 +517,15 @@ process GTDBTK_CLASSIFYWF {
    
     """
 
-    gtdbtk classify_wf \\
-        --genome_dir ${chromosome_path} \\
-        --prefix gtdbtk.${prefix} \\
-        --out_dir ${prefix}_gtdbtk_classification \\
-        --cpus $task.cpus \\
+    cmd="gtdbtk classify_wf --genome_dir ${chromosome_path} --prefix gtdbtk.${prefix} --out_dir ${prefix}_gtdbtk_classification --cpus ${task.cpus} "
+    
+    \${cmd}
+
+    echo "version" >>  ${software}
+    gtdbtk --version >> ${software}
+    echo "version" >>  ${software}
+
+    echo "\${cmd}" >>  ${software} 
     """
 
 }
@@ -589,6 +593,54 @@ process split_assembly {
 
 
 /**************************************************************************************************************************************************************
+* Prodigal
+**************************************************************************************************************************************************************/
+process prodigal {
+  	publishDir "${params.outdir}/prodigal",
+        mode: params.publish_dir_mode
+
+  conda (params.enable_conda ? "bioconda::prodigal" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/prodigal%3A2.60--1"
+    } else {
+        container "quay.io/biocontainers/prodigal"
+    }
+
+    input:
+    tuple val(prefix), path(contigs)
+
+
+    output:
+    tuple val(prefix), path("${prefix}_prodigal"), emit: gene_annotations
+    tuple val(prefix), path("${prefix}_genes.fasta"), emit: nucleotide_fasta
+    tuple val(prefix), path("${prefix}_genes.faa"), emit: amino_acid_fasta
+    path  "*details.txt" , emit: version
+    path ".*.log" , emit: prodigal_log 
+
+
+    script:
+ 
+    """
+    
+    cmd="prodigal -i ${contig}  -o ${prefix}_prodigal -a ${prefix}_genes.faa -d ${prefix}_genes.fasta -f gff -q"
+
+    \${cmd}
+
+    echo "version" >>  ${software}
+    prodigal -v 2>&1 | sed -n 's/Prodigal V\\(.*\\):.*/\\1/p' >> ${software}
+    echo "version" >>  ${software}
+
+    echo "\${cmd}" >>  ${software} 
+
+    """
+}
+
+/**************************************************************************************************************************************************************
+* Assembly2Gene
+**************************************************************************************************************************************************************/
+
+
+/**************************************************************************************************************************************************************
 * Report
 **************************************************************************************************************************************************************/
 
@@ -621,7 +673,7 @@ process report{
         tuple val(prefix), path (pharokka_path)
         path (plasmid_class)
         path (phage_class)
-        //path (snippy_path)
+        path (snippy_path)
         //tuple val(prefix), path (assembly2gene_table)
         //tuple val(prefix), path (assembly2gene_aligments)
         //tuple val(prefix), path (assembly2gene_peptides)
@@ -636,38 +688,19 @@ process report{
         version= "${params.version}"
         github="${params.github}"
         report_template="${params.report_template}"
+        Rrender="${params.Rrender}"
+
 
         """
+
         ln -s ${params.report_template}
         ln -s ${params.logo}
-        #Rscript -e 'Sys.getenv("RSTUDIO_PANDOC")'
-        #Rscript -e 'rmarkdown::pandoc_exec()'
-        #pandoc -v
+        ln -s ${params.Rrender}
 
-        fastqc_v=`sed -n '/version/, /version/{ /version/!p }' ${params.outdir}/fastqc/software_details.txt`
-        echo \$fastqc_v
-        Rscript -e 'rmarkdown::render( input  = "${report_template}", 
-                                        params=list(
-                                                    version=  "${version}", 
-                                                    github= "${github}",
-                                                    fastqc_r1= "${params.outdir}/fastqc/${fastqc_html[0]}",
-                                                    fastqc_r2= "${params.outdir}/fastqc/${fastqc_html[1]}",
-                                                    fastqc_trim_r1= "${params.outdir}/fastqc/${fastqc_trim_html[0]}",
-                                                    fastqc_trim_r2= "${params.outdir}/fastqc/${fastqc_trim_html[2]}",
-                                                    novoassembly_path= "${params.outdir}/unicycler/${novoassembly_path}",
-                                                    chromosome_path= "${params.outdir}/splitting_assemblies/${chromosome_path}",
-                                                    plasmid_path= "${params.outdir}/splitting_assemblies/${plasmid_path}",
-                                                    phage_path= "${params.outdir}/splitting_assemblies/${phage_path}",
-                                                    prokka_denovo_path= "${params.outdir}/prokka/${prokka_denovo_path}",
-                                                    prokka_chr_path= "${params.outdir}/prokka/${prokka_chr_path}",
-                                                    prokka_plasmids_path= "${params.outdir}/prokka/${prokka_plasmids_path}",
-                                                    pharokka_path= "${params.outdir}/pharokka/${pharokka_path}",
-                                                    plasmid_class= "${params.outdir}/plasclass/${plasmid_class}",
-                                                    phage_class= "${params.outdir}/checkv/${phage_class}",
-                                                    fastqc_version= paste(Sys.getenv("fastqc_v"))
-                                                    ),
-                                        output_dir = "./",
-                                        output_file = "${prefix}_ProkGenomics_report.html")'
+        echo "again"
+       
+        Rscript report_render.R ${params.report_template} ${params.outdir} ${prefix} ${version} ${github} ${params.outdir}/fastqc/${fastqc_html[0]} ${params.outdir}/fastqc/${fastqc_html[1]} ${params.outdir}/fastqc/${fastqc_trim_html[0]} ${params.outdir}/fastqc/${fastqc_trim_html[2]} ${params.outdir}/unicycler/${novoassembly_path} ${params.outdir}/splitting_assemblies/${chromosome_path} ${params.outdir}/splitting_assemblies/${plasmid_path} ${params.outdir}/splitting_assemblies/${phage_path} ${params.outdir}/prokka/${prokka_denovo_path} ${params.outdir}/prokka/${prokka_chr_path} ${params.outdir}/prokka/${prokka_plasmids_path} ${params.outdir}/pharokka/${pharokka_path} ${params.outdir}/plasclass/${plasmid_class} ${params.outdir}/checkv/${phage_class}
+     
                                        
      
         """

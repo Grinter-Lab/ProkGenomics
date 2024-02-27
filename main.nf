@@ -58,6 +58,7 @@ params.report_template="$baseDir/scripts/report.Rmd"
 params.logo="$baseDir/scripts/Logo.svg"
 params.github="https://github.com/Grinter-Lab/ProkGenomics"
 params.default_empty_file="$baseDir/scripts/NO_APPLICABLE"
+params.Rrender="$baseDir/scripts/report_render.R"
 /*************************************************************************************************************************************************************
  * Channels
  read parameters in the command line 
@@ -171,7 +172,7 @@ include { checkv } from params.modules
 include { plasclass } from params.modules
 
 // Taxonomy classification
-//include { GTDB } from params.modules
+include { GTDB } from params.modules
 
 // split assembly
 include { split_assembly } from params.modules
@@ -182,7 +183,7 @@ include { pharokka } from params.modules
 
 // Comparative Genomics
 include { snippy } from params.modules
-//include { minimap2 } from params.modules
+//include { bowtie2 } from params.modules
 
 // Charaterization of genome
 //include {prodigal} from params.modules
@@ -309,7 +310,7 @@ workflow report_workflow{
         pharokka_path
         plasmid_class
         phage_class
-       // snippy_path
+		snippy_path
        // assembly2gene_table
        // assembly2gene_aligments
        // assembly2gene_peptides
@@ -325,8 +326,8 @@ workflow report_workflow{
         prokka_plasmids_path,
         pharokka_path,
         plasmid_class,
-        phage_class
-        //snippy_path,
+        phage_class,
+		snippy_path
         //assembly2gene_table,
         //assembly2gene_aligments,
         //assembly2gene_peptides
@@ -337,15 +338,14 @@ workflow report_workflow{
 }
 
 
-workflow SNV_workflow{
+workflow snippy_workflow{
 	take:
 	    ch_in_reference
 		trimmed_reads
-		
 	main:
 		snippy(ch_in_reference,trimmed_reads)
 	emit:
-		snippy_path= snippy.out.snippy_path.ifEmpty(myDefaultInputFile)
+		snippy_path= snippy.out.snippy_path
 }
 
 /************************************************************************************************************************************************************** 
@@ -363,15 +363,10 @@ workflow{
 			shortreads_QC_workflow()
 			shortreads_trim_workflow()
 			shortreads_assembly_workflow(shortreads_trim_workflow.out.trimmed_reads)
-			if ( params.reference ) { SNV_workflow(ch_in_reference,shortreads_trim_workflow.out.trimmed_reads)}
+			if (params.reference )   {snippy_workflow(ch_in_reference,shortreads_trim_workflow.out.trimmed_reads)
+										snippy_output=snippy_workflow.out.snippy_path
+										}else{ snippy_output=myDefaultInputFile}
 
-		}
-
-		if (params.assembly_type=='long'){
-			if ( params.reference ) { SNV_workflow()}
-			shortreads_QC_workflow()
-			shortreads_trim_workflow()
-			shortreads_assembly_workflow(shortreads_trim_workflow.out.trimmed_reads)
 		}
 		assembly_qc_workflow(shortreads_assembly_workflow.out.scaffolds_path)
 		extrachr_workflow(shortreads_assembly_workflow.out.scaffolds)
@@ -381,7 +376,18 @@ workflow{
 		prokka_scaffolds_workflow(shortreads_assembly_workflow.out.scaffolds,denovoassembly)
 		pharokka_workflow(split_assembly_workflow.out.phage_path)
 		//report_workflow(shortreads_QC_workflow.out.fastqc_html,shortreads_assembly_workflow.out.scaffolds,split_assembly_workflow.out.chromosome_path)
-		report_workflow(shortreads_QC_workflow.out.fastqc_html,
+
+
+	}else{
+		extrachr_workflow(ch_in_assembly)
+		split_assembly_workflow(shortreads_assembly_workflow.out.scaffolds,extrachr_workflow.out.plasclass_tsv,extrachr_workflow.out.checkv_summary)
+		prokka_chr_workflow(split_assembly_workflow.out.chromosome_path,chromosome)
+		prokka_plasmids_workflow(split_assembly_workflow.out.plasmid_path,plasmid)
+		prokka_scaffolds_workflow(shortreads_assembly_workflow.out.scaffolds,denovoassembly)
+		pharokka_workflow(split_assembly_workflow.out.phage_path)
+	}
+	
+	report_workflow(	shortreads_QC_workflow.out.fastqc_html,
 						shortreads_trim_workflow.out.fastqc_trim_html,
 						shortreads_assembly_workflow.out.scaffolds,
 						split_assembly_workflow.out.chromosome_path,
@@ -392,18 +398,12 @@ workflow{
 						prokka_plasmids_workflow.out.prokka_path,
 						pharokka_workflow.out.pharokka_path,
 						extrachr_workflow.out.plasclass_tsv,
-        				extrachr_workflow.out.checkv_summary
-        				//SNV_workflow.out.snippy_path,
+        				extrachr_workflow.out.checkv_summary,
+        				snippy_output
         				//assembly2gene_table,
         				//assembly2gene_aligments,
         				//assembly2gene_peptides
 						)
-	}
-	//scaffolds_path=ch_in_assembly
-	//assembly_qc_workflow(ch_in_assembly_path)
-	//extrachr_workflow(ch_in_assembly)
-	//annotation_workflow(ch_in_assembly)
-		
 
 
 

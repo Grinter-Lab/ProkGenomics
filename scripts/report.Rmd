@@ -28,7 +28,15 @@ params:
   assembly2gene_table: "assembly2gene_table"
   assembly2gene_aligments: "assembly2gene_aligments"
   assembly2gene_peptides: "assembly2gene_peptides"
-  fastqc_version: 'fastqc_version'
+  fastqc_version: 'version'
+  trimmomatic_version: 'version'
+  unicycler_version: 'version'
+  snippy_version: 'version'
+  prokka_version: 'version'
+  pharokka_version: 'version'
+  plasclass_version: 'version'
+  checkv_version: 'version'
+  checkm_version: 'version'
 ---
 
 
