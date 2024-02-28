@@ -514,8 +514,15 @@ process gtdb {
     software = "${params.software_versions}"
    
     """
+    while true; do
+        wget -T 15 -c https://data.gtdb.ecogenomic.org/releases/release214/214.0/auxillary_files/gtdbtk_r214_data.tar.gz
+    done
+    
+    tar -xvzf gtdbtk_r214_data.tar.gz
+    GTDBTK_DATA_PATH="./release214"
 
-    cmd="gtdbtk classify_wf --genome_dir ${chromosome_path} --prefix gtdbtk.${prefix} --out_dir ${prefix}_gtdbtk_classification --cpus ${task.cpus} "
+    download-db.sh
+    cmd="gtdbtk classify_wf --genome_dir ${chromosome_path} --prefix gtdbtk.${prefix} --out_dir ${prefix}_gtdbtk_classification --cpus ${task.cpus} --skip_ani_screen"
     
     \${cmd}
 
