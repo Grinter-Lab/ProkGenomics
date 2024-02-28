@@ -53,7 +53,7 @@ params.reference = null
 params.software_versions="software_details.txt"
 params.adapter_file="TruSeq3-PE.fa"
 params.assembly=null
-params.version="version 1.0.0"
+params.version="v.1.0.0" //it has to be one word otherwise will mess up the report
 params.report_template="$baseDir/scripts/report.Rmd"
 params.logo="$baseDir/scripts/Logo.svg"
 params.github="https://github.com/Grinter-Lab/ProkGenomics"
@@ -172,7 +172,7 @@ include { checkv } from params.modules
 include { plasclass } from params.modules
 
 // Taxonomy classification
-include { GTDB } from params.modules
+include { gtdb } from params.modules
 
 // split assembly
 include { split_assembly } from params.modules
@@ -184,6 +184,7 @@ include { pharokka } from params.modules
 // Comparative Genomics
 include { snippy } from params.modules
 //include { bowtie2 } from params.modules
+//include { minimap2 } from params.modules
 
 // Charaterization of genome
 //include {prodigal} from params.modules
@@ -227,7 +228,7 @@ workflow assembly_qc_workflow{
 	main:
 		checkm(scaffolds_path)
 	emit:
-		assemblyQC=checkm.out.checkm_tsv
+		assemblyqc_path= checkm.out.checkm_tsv
 }
 
 
@@ -296,47 +297,6 @@ workflow pharokka_workflow{
 		pharokka_path=pharokka.out.pharokka_path.ifEmpty(myDefaultInputFile)
 }
 
-workflow report_workflow{
-	take:
-		fastqc_html 
-		fastqc_trim_html 
-    	novoassembly_path
-       	chromosome_path
-        plasmid_path
-        phage_path
-        prokka_denovo_path
-        prokka_chr_path
-        prokka_plasmids_path
-        pharokka_path
-        plasmid_class
-        phage_class
-		snippy_path
-       // assembly2gene_table
-       // assembly2gene_aligments
-       // assembly2gene_peptides
-	main:
-		report(fastqc_html,
-		fastqc_trim_html,
-        novoassembly_path,
-        chromosome_path,
-        plasmid_path,
-        phage_path,
-        prokka_denovo_path,
-        prokka_chr_path,
-        prokka_plasmids_path,
-        pharokka_path,
-        plasmid_class,
-        phage_class,
-		snippy_path
-        //assembly2gene_table,
-        //assembly2gene_aligments,
-        //assembly2gene_peptides
-		)
-		
-	emit:
-		final_report=report.out.report_path
-}
-
 
 workflow snippy_workflow{
 	take:
@@ -347,6 +307,64 @@ workflow snippy_workflow{
 	emit:
 		snippy_path= snippy.out.snippy_path
 }
+
+workflow gtdb_workflow{
+	take:
+		contigs
+	main:
+		gtdb(contigs)
+	emit:
+		gtdb_path= gtdb.out.gtdbtk_summary
+}
+
+
+workflow report_workflow{
+	take:
+		fastqc_html 
+		fastqc_trim_html 
+    	novoassembly_path
+       	chromosome_path
+        plasmid_path
+        phage_path
+		assembly_qc
+        prokka_denovo_path
+        prokka_chr_path
+        prokka_plasmids_path
+        pharokka_path
+        plasmid_class
+        phage_class
+		snippy_path
+		gtdb_path
+       // assembly2gene_table
+       // assembly2gene_aligments
+       // assembly2gene_peptides
+	main:
+		report(fastqc_html,
+		fastqc_trim_html,
+        novoassembly_path,
+        chromosome_path,
+        plasmid_path,
+        phage_path,
+		assembly_qc,
+        prokka_denovo_path,
+        prokka_chr_path,
+        prokka_plasmids_path,
+        pharokka_path,
+        plasmid_class,
+        phage_class,
+		snippy_path,
+		gtdb_path
+        //assembly2gene_table,
+        //assembly2gene_aligments,
+        //assembly2gene_peptides
+		)
+		
+	emit:
+		final_report=report.out.report_path
+}
+
+
+
 
 /************************************************************************************************************************************************************** 
  * Main workflow
@@ -375,8 +393,7 @@ workflow{
 		prokka_plasmids_workflow(split_assembly_workflow.out.plasmid_path,plasmid)
 		prokka_scaffolds_workflow(shortreads_assembly_workflow.out.scaffolds,denovoassembly)
 		pharokka_workflow(split_assembly_workflow.out.phage_path)
-		//report_workflow(shortreads_QC_workflow.out.fastqc_html,shortreads_assembly_workflow.out.scaffolds,split_assembly_workflow.out.chromosome_path)
-
+		gtdb_workflow(split_assembly_workflow.out.chromosome_path)
 
 	}else{
 		extrachr_workflow(ch_in_assembly)
@@ -385,35 +402,46 @@ workflow{
 		prokka_plasmids_workflow(split_assembly_workflow.out.plasmid_path,plasmid)
 		prokka_scaffolds_workflow(shortreads_assembly_workflow.out.scaffolds,denovoassembly)
 		pharokka_workflow(split_assembly_workflow.out.phage_path)
+		gtdb_workflow(split_assembly_workflow.out.chromosome_path)
+
 	}
 	
-	report_workflow(	shortreads_QC_workflow.out.fastqc_html,
-						shortreads_trim_workflow.out.fastqc_trim_html,
-						shortreads_assembly_workflow.out.scaffolds,
-						split_assembly_workflow.out.chromosome_path,
-						split_assembly_workflow.out.plasmid_path,
-						split_assembly_workflow.out.phage_path,
-						prokka_scaffolds_workflow.out.prokka_path,
-						prokka_chr_workflow.out.prokka_path,
-						prokka_plasmids_workflow.out.prokka_path,
-						pharokka_workflow.out.pharokka_path,
-						extrachr_workflow.out.plasclass_tsv,
-        				extrachr_workflow.out.checkv_summary,
-        				snippy_output
+
+	fastqc_html_output      = shortreads_QC_workflow.out.fastqc_html.ifEmpty(myDefaultInputFile)
+	fastqc_trim_html_output = shortreads_trim_workflow.out.fastqc_trim_html.ifEmpty(myDefaultInputFile)
+	scaffolds_output        = shortreads_assembly_workflow.out.scaffolds.ifEmpty(myDefaultInputFile)
+	chromosome_path_output  = split_assembly_workflow.out.chromosome_path.ifEmpty(myDefaultInputFile)
+	plasmid_path_output     = split_assembly_workflow.out.plasmid_path.ifEmpty(myDefaultInputFile)
+	phage_path_output       = split_assembly_workflow.out.phage_path.ifEmpty(myDefaultInputFile)
+	prokka_scaffolds_path_output = prokka_scaffolds_workflow.out.prokka_path.ifEmpty(myDefaultInputFile)
+	prokka_chr_path         = prokka_chr_workflow.out.prokka_path.ifEmpty(myDefaultInputFile)
+	prokka_plasmids_path = prokka_plasmids_workflow.out.prokka_path.ifEmpty(myDefaultInputFile)
+	pharokka_path = pharokka_workflow.out.pharokka_path.ifEmpty(myDefaultInputFile)
+	plasclass_output = extrachr_workflow.out.plasclass_tsv.ifEmpty(myDefaultInputFile)
+    checkv_output = extrachr_workflow.out.checkv_summary.ifEmpty(myDefaultInputFile)
+	gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty(myDefaultInputFile)
+	assemblyqc_output = assembly_qc_workflow.out.assemblyqc_path.ifEmpty(myDefaultInputFile)
+
+	report_workflow(	fastqc_html_output,
+						fastqc_trim_html_output,
+						scaffolds_output,
+						chromosome_path_output,
+						plasmid_path_output,
+						phage_path_output,
+						assemblyqc_output,
+						prokka_scaffolds_path_output,
+						prokka_chr_path,
+						prokka_plasmids_path,
+						pharokka_path,
+						plasclass_output,
+        				checkv_output,
+        				snippy_output,
+						gtdb_output
+
         				//assembly2gene_table,
         				//assembly2gene_aligments,
         				//assembly2gene_peptides
 						)
-
-
-
-//	assembly.view()
-//	mapping_workflow(assembly,ch_in_reads)
-//	mappedsam=mapping_workflow.out[0]
-//	mappedbam=mapping_workflow.out[1]
-//	binning_workflow(assembly,mappedsam,mappedbam)
-//	refbinning=binning_workflow.out[0]
-//	dRep_GTDB_workflow(refbinning)
 
 }
 

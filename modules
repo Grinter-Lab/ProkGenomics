@@ -276,7 +276,7 @@ process checkv {
         \${cmd}
         
         echo "version" >>  ${software}
-        checkv |head -1 >>  ${software}
+        checkv |head -1| sed 's/: assessing the quality of metagenome-assembled viral genomes//' >>  ${software}
         echo "version" >>  ${software}
         
         echo "\${cmd}" >>  ${software}
@@ -482,7 +482,7 @@ process snippy {
 **************************************************************************************************************************************************************/
 
 
-process GTDB {
+process gtdb {
 	publishDir "${params.outdir}/GTDB",
         mode: params.publish_dir_mode
 
@@ -496,7 +496,6 @@ process GTDB {
 
     input:
         tuple val(prefix), path (chromosome_path)
-        path(mash_db)
 
     output:
         tuple val(prefix), path("gtdbtk.${prefix}.*.summary.tsv")         , emit: gtdbtk_summary
@@ -506,7 +505,6 @@ process GTDB {
         tuple val(prefix), path("gtdbtk.${prefix}.*.user_msa.fasta.gz")   , emit: gtdbtk_user_msa, optional: true
         tuple val(prefix), path("gtdbtk.${prefix}.*.filtered.tsv")        , emit: gtdbtk_filtered, optional: true
         tuple val(prefix), path("gtdbtk.${prefix}.failed_genomes.tsv")    , emit: gtdbtk_failed, optional: true
-        tuple val(prefix), path("gtdbtk.${prefix}.log")                   , emit: gtdbtk_log
         tuple val(prefix), path("gtdbtk.${prefix}.warnings.log")          , emit: gtdbtk_warnings
         path  "*details.txt" , emit: version
         path ".*.log" , emit: gtdbtk_log
@@ -667,13 +665,15 @@ process report{
         tuple val(prefix), path (chromosome_path)
         tuple val(prefix), path (plasmid_path)
         tuple val(prefix), path (phage_path)
+        path (checkm_tsv)
         tuple val(prefix), path (prokka_denovo_path)
         tuple val(prefix), path (prokka_chr_path)
-        tuple val(prefix), path (prokka_plasmids_path)
+        tuple val(prefix), path (prokka_plasmid_path)
         tuple val(prefix), path (pharokka_path)
         path (plasmid_class)
         path (phage_class)
         path (snippy_path)
+        tuple val(prefix), path (gtdbtk_summary)
         //tuple val(prefix), path (assembly2gene_table)
         //tuple val(prefix), path (assembly2gene_aligments)
         //tuple val(prefix), path (assembly2gene_peptides)
@@ -691,15 +691,23 @@ process report{
         Rrender="${params.Rrender}"
 
 
-        """
+        """    
+        echo "again"  
 
+ echo "again"   
+ echo "again"  
         ln -s ${params.report_template}
         ln -s ${params.logo}
         ln -s ${params.Rrender}
 
+        echo "again"  
         echo "again"
+        echo "again"
+        echo "again"
+        echo "again" 
+      
        
-        Rscript report_render.R ${params.report_template} ${params.outdir} ${prefix} ${version} ${github} ${params.outdir}/fastqc/${fastqc_html[0]} ${params.outdir}/fastqc/${fastqc_html[1]} ${params.outdir}/fastqc/${fastqc_trim_html[0]} ${params.outdir}/fastqc/${fastqc_trim_html[2]} ${params.outdir}/unicycler/${novoassembly_path} ${params.outdir}/splitting_assemblies/${chromosome_path} ${params.outdir}/splitting_assemblies/${plasmid_path} ${params.outdir}/splitting_assemblies/${phage_path} ${params.outdir}/prokka/${prokka_denovo_path} ${params.outdir}/prokka/${prokka_chr_path} ${params.outdir}/prokka/${prokka_plasmids_path} ${params.outdir}/pharokka/${pharokka_path} ${params.outdir}/plasclass/${plasmid_class} ${params.outdir}/checkv/${phage_class}
+        Rscript report_render.R ${params.report_template} ${params.outdir} ${prefix} ${version} ${github} ${params.outdir}/fastqc/${fastqc_html[0]} ${params.outdir}/fastqc/${fastqc_html[1]} ${params.outdir}/fastqc/${fastqc_trim_html[0]} ${params.outdir}/fastqc/${fastqc_trim_html[2]} ${params.outdir}/unicycler/${novoassembly_path} ${params.outdir}/splitting_assemblies/${chromosome_path} ${params.outdir}/splitting_assemblies/${plasmid_path} ${params.outdir}/splitting_assemblies/${phage_path} ${params.outdir}/checkm/${checkm_tsv} ${params.outdir}/prokka/${prokka_denovo_path} ${params.outdir}/prokka/${prokka_chr_path} ${params.outdir}/prokka/${prokka_plasmid_path} ${params.outdir}/pharokka/${pharokka_path} ${params.outdir}/plasclass/${plasmid_class} ${params.outdir}/checkv/${phage_class}
      
                                        
      
