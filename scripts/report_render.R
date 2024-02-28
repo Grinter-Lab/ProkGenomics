@@ -60,6 +60,7 @@ rmarkdown::render( input  = report_template,
                                 pharokka_path= pharokka_path,
                                 plasmid_class=plasmid_class,
                                 phage_class= phage_class,
+                                novoassembly_path_QC= novoassembly_path_QC,
                                 fastqc_version= fastqc_version,
                                 trimmomatic_version=trimmomatic_version,
                                 unicycler_version=unicycler_version,
@@ -68,7 +69,8 @@ rmarkdown::render( input  = report_template,
                                 pharokka_version=pharokka_version,
                                 plasclass_version=plasclass_version,
                                 checkv_version=checkv_version,
-                                checkm_version=checkm_version
+                                checkm_version=checkm_version,
+
                                 ),
                         output_dir = Sys.getenv("PWD"),
                         output_file = file_name

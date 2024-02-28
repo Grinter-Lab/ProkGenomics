@@ -18,6 +18,7 @@ params:
   chromosome_path: "No Found"
   plasmid_path: "No Found"
   phage_path: "No Found"
+  novoassembly_path_QC: "No Found"
   prokka_denovo_path: "No Found"
   prokka_chr_path: "No Found"
   prokka_plasmid_path: "No Found"

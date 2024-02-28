@@ -11,6 +11,9 @@ docker: https://quay.io/organization/biocontainers
 **************************************************************************************************************************************************************/
 
 process fastqc {	
+     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+
 	publishDir "${params.outdir}/fastqc",
         mode: params.publish_dir_mode
 	
@@ -53,6 +56,9 @@ process fastqc {
 
 
 process trimmomatic {
+     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+
 	publishDir "${params.outdir}/trimmomatic",
         mode: params.publish_dir_mode
 
@@ -110,6 +116,9 @@ process trimmomatic {
 **************************************************************************************************************************************************************/
 
 process unicycler_short {
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+
 	publishDir "${params.outdir}/unicycler",
         mode: params.publish_dir_mode
 
@@ -152,6 +161,10 @@ process unicycler_short {
 **************************************************************************************************************************************************************/
 
 process busco {
+     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+
+
 	publishDir "${params.outdir}/busco",
         mode: params.publish_dir_mode
 
@@ -291,8 +304,8 @@ process checkv {
 **************************************************************************************************************************************************************/
 
 process plasclass {
-    //errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    //maxRetries 3
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
     //errorStrategy 'ignore'
 
 	publishDir "${params.outdir}/plasclass",
@@ -338,6 +351,8 @@ process plasclass {
 
 
 process prokka {
+     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
 
 	publishDir "${params.outdir}/prokka",
         mode: params.publish_dir_mode
@@ -483,6 +498,9 @@ process snippy {
 
 
 process gtdb {
+     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+    
 	publishDir "${params.outdir}/GTDB",
         mode: params.publish_dir_mode
 
@@ -515,7 +533,7 @@ process gtdb {
    
     """
     while true; do
-        wget -T 15 -c https://data.gtdb.ecogenomic.org/releases/release214/214.0/auxillary_files/gtdbtk_r214_data.tar.gz
+        wget -T 15 -c https://data.gtdb.ecogenomic.org/releases/release214/214.0/auxillary_files/gtdbtk_r214_data.tar.gz && break
     done
     
     tar -xvzf gtdbtk_r214_data.tar.gz
@@ -601,6 +619,9 @@ process split_assembly {
 * Prodigal
 **************************************************************************************************************************************************************/
 process prodigal {
+     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+
   	publishDir "${params.outdir}/prodigal",
         mode: params.publish_dir_mode
 
@@ -652,6 +673,7 @@ process prodigal {
 
 
 process report{
+
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode
 
