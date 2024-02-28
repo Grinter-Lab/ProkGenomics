@@ -1,3 +1,5 @@
 #!/bin/bash
 
-nextflow run $PWD/main.nf $@
+program_location=`echo "$PATH" | sed -e 's/:/\n/g'| grep "ProkGenomics"`
+#echo $program_location
+nextflow run $program_location/main.nf $@
