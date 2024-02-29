@@ -726,9 +726,6 @@ process report{
         ln -s ${params.report_template}
         ln -s ${params.logo}
         ln -s ${params.Rrender}
-
-        #FLAGS=(--archive --exclude="foo bar.txt")
- 
       
          cmd1=(fastqc_version=try(system(paste0("if [ -s "\,${params.outdir}\,"/fastqc/software_details.txt ];then sed -n '/version/,/version/{ /version/!p }' "\,${params.outdir}\,"/fastqc/software_details.txt; fi"),intern = TRUE),silent=TRUE))
         Rscript -e \${cmd1[\@]}\\
