@@ -727,8 +727,10 @@ process report{
         ln -s ${params.logo}
         ln -s ${params.Rrender}
         
-        IFS=,
-        cmd1=(fastqc_version=try(system(paste0(\"if [ -s \",${params.outdir},\"/fastqc/software_details.txt ];then sed -n \'/version/,/version/{ /version/!p }\' \",${params.outdir},\"/fastqc/software_details.txt; fi\"),intern = TRUE),silent=TRUE))
+        
+        cmd1=(fastqc_version=try(system(paste0(\"if [ -s \"\,${params.outdir}\,\"/fastqc/software_details.txt ]\;then sed -n \'/version/\,/version/{ /version/!p }\' \"\,${params.outdir}\,\"/fastqc/software_details.txt\; fi\")\,intern = TRUE),silent=TRUE))
+        echo \$cmd1
+        
         Rscript -e \${cmd1[\@]}\\
                 -e  "print(fastqc_version)"
 
