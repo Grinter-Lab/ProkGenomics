@@ -722,17 +722,11 @@ process report{
 
         """    
         echo "again"  
-
- echo "again"   
- echo "again"  
         ln -s ${params.report_template}
         ln -s ${params.logo}
         ln -s ${params.Rrender}
 
-        echo "again"  
-        echo "again"
-        echo "again"
-        echo "again"
+
         echo "again" 
       
        
