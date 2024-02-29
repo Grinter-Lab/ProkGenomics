@@ -730,8 +730,8 @@ process report{
         #FLAGS=(--archive --exclude="foo bar.txt")
  
       
-         cmd1=(fastqc_version=try(system(paste0("if [ -s ", ${params.outdir},"/fastqc/software_details.txt ];then sed -n '/version/, /version/{ /version/!p }' ", ${params.outdir},"/fastqc/software_details.txt; fi"),intern = TRUE),silent=TRUE))
-        Rscript -e \${FLAGS[\@]}\\
+         cmd1=(fastqc_version=try(system(paste0("if [ -s ",${params.outdir},"/fastqc/software_details.txt ];then sed -n '/version/,/version/{ /version/!p }' ",${params.outdir},"/fastqc/software_details.txt; fi"),intern = TRUE),silent=TRUE))
+        Rscript -e \${cmd1[\@]}\\
                 -e  "print(fastqc_version)"
 
      
