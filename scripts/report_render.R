@@ -69,8 +69,7 @@ rmarkdown::render( input  = report_template,
                                 pharokka_version=pharokka_version,
                                 plasclass_version=plasclass_version,
                                 checkv_version=checkv_version,
-                                checkm_version=checkm_version,
-
+                                checkm_version=checkm_version
                                 ),
                         output_dir = Sys.getenv("PWD"),
                         output_file = file_name

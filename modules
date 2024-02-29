@@ -423,9 +423,10 @@ process pharokka {
         task.cpus="${params.threads}"
         software = "${params.software_versions}"
         """
-        ln -s $baseDir/scripts/db_pharokka.sh
-        chmod a+x $baseDir/scripts/db_pharokka.sh
-        install_databases.py -o pharokka_databases || ./$baseDir/scripts/db_pharokka.sh
+        #ln -s $baseDir/scripts/db_pharokka.sh
+        #chmod a+x $baseDir/scripts/db_pharokka.sh
+        #install_databases.py -o pharokka_databases || ./$baseDir/scripts/db_pharokka.sh
+        install_databases.py -o pharokka_databases
         cmd="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus} -meta"
         \${cmd}
 
