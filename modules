@@ -728,7 +728,7 @@ process report{
         ln -s ${params.Rrender}
         
         
-        Rscript -e 'rmarkdown::render( input = "\$LOCAL_R_SCRITPS/report.Rmd",  output_dir = "${params.outdir}" ,output_file = "${params.outdir}_test.html")'
+        Rscript -e 'rmarkdown::render( input = "${LOCAL_R_SCRITPS}/report.Rmd",  output_dir = "${params.outdir}" ,output_file = "${params.outdir}_test.html")'
 
      
 
