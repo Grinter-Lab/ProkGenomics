@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 args = commandArgs()
  #report_template=args[6]
- report_template=opt$file
+ report_template="/mnt/report.Rmd"
  params_outdir= args[7]
  prefix_sample= args[8] 
  version= args[9]
@@ -26,6 +26,7 @@ args = commandArgs()
 cmd <- paste(commandArgs(), collapse=" ")
 cat("How R was invoked:\n");
 cat(cmd, "\n")
+cat(args[1])
 
 #print(paste0("if [ -s ", params_outdir,"/fastqc/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/fastqc/software_details.txt; fi"))
 
