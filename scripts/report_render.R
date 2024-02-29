@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 args = commandArgs()
  #report_template=args[6]
- report_template="/mnt/report_render.R"
+ report_template=opt$file
  params_outdir= args[7]
  prefix_sample= args[8] 
  version= args[9]
