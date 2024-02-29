@@ -722,19 +722,65 @@ process report{
 
 
         """    
-        echo "again"  
+        echo "Run Rscript in one line in the container"  
         ln -s ${params.report_template}
         ln -s ${params.logo}
         ln -s ${params.Rrender}
 
 
-        echo "again" 
-        echo "again" 
+      " 
       
-       
-        Rscript ${params.Rrender} ${params.report_template} ${params.outdir} ${prefix} ${version} ${github} ${params.outdir}/fastqc/${fastqc_html[0]} ${params.outdir}/fastqc/${fastqc_html[1]} ${params.outdir}/fastqc/${fastqc_trim_html[0]} ${params.outdir}/fastqc/${fastqc_trim_html[2]} ${params.outdir}/unicycler/${novoassembly_path} ${params.outdir}/splitting_assemblies/${chromosome_path} ${params.outdir}/splitting_assemblies/${plasmid_path} ${params.outdir}/splitting_assemblies/${phage_path} ${params.outdir}/checkm/${checkm_tsv} ${params.outdir}/prokka/${prokka_denovo_path} ${params.outdir}/prokka/${prokka_chr_path} ${params.outdir}/prokka/${prokka_plasmid_path} ${params.outdir}/pharokka/${pharokka_path} ${params.outdir}/plasclass/${plasmid_class} ${params.outdir}/checkv/${phage_class}
+        #Rscript report_render.R ${params.report_template} ${params.outdir} ${prefix} ${version} ${github} ${params.outdir}/fastqc/${fastqc_html[0]} ${params.outdir}/fastqc/${fastqc_html[1]} ${params.outdir}/fastqc/${fastqc_trim_html[0]} ${params.outdir}/fastqc/${fastqc_trim_html[2]} ${params.outdir}/unicycler/${novoassembly_path} ${params.outdir}/splitting_assemblies/${chromosome_path} ${params.outdir}/splitting_assemblies/${plasmid_path} ${params.outdir}/splitting_assemblies/${phage_path} ${params.outdir}/checkm/${checkm_tsv} ${params.outdir}/prokka/${prokka_denovo_path} ${params.outdir}/prokka/${prokka_chr_path} ${params.outdir}/prokka/${prokka_plasmid_path} ${params.outdir}/pharokka/${pharokka_path} ${params.outdir}/plasclass/${plasmid_class} ${params.outdir}/checkv/${phage_class}
      
-                                       
+        Rscript -e "fastqc_version=try(system(paste0("if [ -s ", params_outdir,"/fastqc/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/fastqc/software_details.txt; fi"),intern = TRUE),silent=TRUE)"\\
+                -e "trimmomatic_version=try(system(paste0("if [ -s ",params_outdir,"/trimmomatic/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/trimmomatic/software_details.txt; fi"),intern = TRUE),silent=TRUE)"\\
+                -e "unicycler_version=try(system(paste0("if [ -s ",params_outdir,"/unicycler/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/unicycler/software_details.txt; fi"),intern = TRUE),silent=TRUE)"\\
+                -e "prokka_version=try(system(paste0("if [ -s ",params_outdir,"/prokka/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/prokka/software_details.txt; fi"),intern = TRUE),silent=TRUE)"\\
+                -e "pharokka_version=try(system(paste0("if [ -s ",params_outdir,"/pharokka/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/pharokka/software_details.txt; fi"),intern = TRUE),silent=TRUE)"\\
+                -e "plasclass_version=try(system(paste0("if [ -s ",params_outdir,"/plasclass/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/plasclass/software_details.txt; fi "),intern = TRUE),silent=TRUE)"\\
+                -e "checkv_version=try(system(paste0("if [ -s ",params_outdir,"/checkv/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/checkv/software_details.txt; fi"),intern = TRUE),silent=TRUE)"\\
+                -e "checkm_version=try(system(paste0("if [ -s ",params_outdir,"/checkm/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/checkm/software_details.txt; fi"),intern = TRUE),silent=TRUE)"\\
+                -e "snippy_version=try(system(paste0("if [ -s ",params_outdir,"/snippy/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/snippy/software_details.txt; fi"),intern = TRUE),silent=TRUE)"\\
+                -e "file_name=paste0(prefix_sample,"_ProkGenomics_report.html")"\\
+                -e  "  rmarkdown::render( input  = report_template, \\
+                        params=list(\\
+                                        version= version,\\
+                                        github= github,\\
+                                        fastqc_r1= fastqc_r1,\\
+                                        fastqc_r2= fastqc_r2,\\
+                                        fastqc_trim_r1= fastqc_trim_r1,\\
+                                        fastqc_trim_r2= fastqc_trim_r2,\\
+                                        novoassembly_path= novoassembly_path,\\
+                                        chromosome_path= chromosome_path,\\
+                                        plasmid_path= plasmid_path,\\
+                                        phage_path= phage_path,\\
+                                        prokka_denovo_path= prokka_denovo_path,\\
+                                        prokka_chr_path= prokka_chr_path,\\
+                                        prokka_plasmid_path= prokka_plasmid_path,\\
+                                        pharokka_path= pharokka_path,\\
+                                        plasmid_class=plasmid_class,\\
+                                        phage_class= phage_class,\\
+                                        novoassembly_path_QC= novoassembly_path_QC,\\
+                                        fastqc_version= fastqc_version,\\
+                                        trimmomatic_version=trimmomatic_version,\\
+                                        unicycler_version=unicycler_version,\\
+                                        snippy_version=snippy_version,\\
+                                        prokka_version=prokka_version,\\
+                                        pharokka_version=pharokka_version,\\
+                                        plasclass_version=plasclass_version,\\
+                                        checkv_version=checkv_version,\\
+                                        checkm_version=checkm_version\\
+                                        ),\\
+                                output_dir = Sys.getenv("PWD"),\\
+                                output_file = file_name\\
+                            )\\
+
+
+
+
+
+        #Rscript -e  ${params.report_template} ${params.outdir} ${prefix} ${version} ${github} ${params.outdir}/fastqc/${fastqc_html[0]} ${params.outdir}/fastqc/${fastqc_html[1]} ${params.outdir}/fastqc/${fastqc_trim_html[0]} ${params.outdir}/fastqc/${fastqc_trim_html[2]} ${params.outdir}/unicycler/${novoassembly_path} ${params.outdir}/splitting_assemblies/${chromosome_path} ${params.outdir}/splitting_assemblies/${plasmid_path} ${params.outdir}/splitting_assemblies/${phage_path} ${params.outdir}/checkm/${checkm_tsv} ${params.outdir}/prokka/${prokka_denovo_path} ${params.outdir}/prokka/${prokka_chr_path} ${params.outdir}/prokka/${prokka_plasmid_path} ${params.outdir}/pharokka/${pharokka_path} ${params.outdir}/plasclass/${plasmid_class} ${params.outdir}/checkv/${phage_class}
+                             
      
         """
 
