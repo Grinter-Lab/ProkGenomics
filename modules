@@ -423,6 +423,7 @@ process pharokka {
         task.cpus="${params.threads}"
         software = "${params.software_versions}"
         """
+        echo "again"
         #ln -s $baseDir/scripts/db_pharokka.sh
         #chmod a+x $baseDir/scripts/db_pharokka.sh
         #install_databases.py -o pharokka_databases || ./$baseDir/scripts/db_pharokka.sh
@@ -674,6 +675,7 @@ process prodigal {
 
 
 process report{
+    label 'mount_local_scripts'
 
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode
