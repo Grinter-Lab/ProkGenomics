@@ -279,8 +279,7 @@ process checkv {
         task.cpus="${params.threads}"
         software="${params.software_versions}"
         """
-        #ln -s  $baseDir/bin 
-
+        #ln -s  $baseDir/scripts/db_checkv.sh
         #chmod a+x db_checkv.sh
         checkv download_database ./ || db_checkv.sh
 
@@ -524,9 +523,9 @@ process gtdb {
         tuple val(prefix), path("gtdbtk.${prefix}.*.user_msa.fasta.gz")   , emit: gtdbtk_user_msa, optional: true
         tuple val(prefix), path("gtdbtk.${prefix}.*.filtered.tsv")        , emit: gtdbtk_filtered, optional: true
         tuple val(prefix), path("gtdbtk.${prefix}.failed_genomes.tsv")    , emit: gtdbtk_failed, optional: true
-        tuple val(prefix), path("gtdbtk.${prefix}.warnings.log")          , emit: gtdbtk_warnings
-        path  "*details.txt" , emit: version
-        path ".*.log" , emit: gtdbtk_log
+        tuple val(prefix), path("gtdbtk.${prefix}.warnings.log")          , emit: gtdbtk_warnings,optional: true
+        path  "*details.txt" , emit: version,optional: true
+        path ".*.log" , emit: gtdbtk_log,optional: true
 
     script:
     task.cpus="${params.threads}"
