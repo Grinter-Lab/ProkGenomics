@@ -280,8 +280,8 @@ process checkv {
         software="${params.software_versions}"
         """
         ln -s $baseDir/scripts/db_checkv.sh
-        chmod a+x db_checkv.sh
-        checkv download_database ./ || ./db_checkv.sh
+        chmod a+x $PWD/db_checkv.sh
+        checkv download_database ./ || $PWD/db_checkv.sh
 
         cmd="checkv end_to_end ${scaffolds} ${prefix} -t ${task.cpus} -d checkv-db*" 
         echo "\${cmd}" >>  ${software}
