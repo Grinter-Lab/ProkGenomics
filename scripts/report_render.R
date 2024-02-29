@@ -1,4 +1,4 @@
-
+#!/usr/bin/env Rscript
 args = commandArgs()
  report_template=args[6]
  params_outdir= args[7]
