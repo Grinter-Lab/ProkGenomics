@@ -728,7 +728,7 @@ process report{
         ln -s ${params.Rrender}
 
         #FLAGS=(--archive --exclude="foo bar.txt")
-        #rsync "${FLAGS[@]}" dir1 dir2
+ 
       
          cmd1=(fastqc_version=try(system(paste0("if [ -s ", ${params.outdir},"/fastqc/software_details.txt ];then sed -n '/version/, /version/{ /version/!p }' ", ${params.outdir},"/fastqc/software_details.txt; fi"),intern = TRUE),silent=TRUE))
         Rscript -e \${FLAGS[\@]}\\
