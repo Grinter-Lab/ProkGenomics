@@ -248,6 +248,8 @@ process checkm {
 
 
 process checkv {
+    label 'mount_local_scripts'
+    
     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
     maxRetries 3
 
@@ -279,9 +281,8 @@ process checkv {
         task.cpus="${params.threads}"
         software="${params.software_versions}"
         """
-        #ln -s  $baseDir/scripts/db_checkv.sh
-        #chmod a+x db_checkv.sh
-        checkv download_database ./ || db_checkv.sh
+        chmod a+x /ProkGenomics_scripts/db_checkv.sh
+        checkv download_database ./ || ./ProkGenomics_scripts/db_checkv.sh
 
         cmd="checkv end_to_end ${scaffolds} ${prefix} -t ${task.cpus} -d checkv-db*" 
         echo "\${cmd}" >>  ${software}
@@ -397,6 +398,8 @@ process prokka {
 
 
 process pharokka {
+       label 'mount_local_scripts'
+
      errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
     maxRetries 3
 
@@ -423,11 +426,10 @@ process pharokka {
         task.cpus="${params.threads}"
         software = "${params.software_versions}"
         """
-        echo "again"
-        #ln -s $baseDir/scripts/db_pharokka.sh
-        #chmod a+x $baseDir/scripts/db_pharokka.sh
-        #install_databases.py -o pharokka_databases || ./$baseDir/scripts/db_pharokka.sh
-        install_databases.py -o pharokka_databases
+
+        chmod a+x /ProkGenomics_scripts/db_pharokka.sh
+        install_databases.py -o pharokka_databases || /ProkGenomics_scripts/db_pharokka.sh
+       
         cmd="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus} -meta"
         \${cmd}
 
