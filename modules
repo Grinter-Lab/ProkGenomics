@@ -430,12 +430,19 @@ process pharokka {
         chmod a+x /ProkGenomics_scripts/db_pharokka.sh
         install_databases.py -o pharokka_databases || /ProkGenomics_scripts/db_pharokka.sh
        
-        cmd="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus} -meta"
+        cmd="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus}"
+        cmd_meta="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus} -meta"
+
+
         \${cmd}
+        \${cmd_meta}
+
+        if [ `grep ">" ${contigs_phage}|wc -l` > 1 ]; then \$cmd_meta; else \$cmd; fi
 
         echo "version" >>  ${software}
         pharokka.py --version >> ${software}
         echo "version" >>  ${software}
+
 
         echo "\${cmd}" >>  ${software}
 
