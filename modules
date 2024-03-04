@@ -430,8 +430,8 @@ process pharokka {
         chmod a+x /ProkGenomics_scripts/db_pharokka.sh
         install_databases.py -o pharokka_databases || /ProkGenomics_scripts/db_pharokka.sh
        
-        cmd="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus}"
-        cmd_meta="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus} -meta"
+        cmd="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus} -f"
+        cmd_meta="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus} -meta -f"
 
 
         \${cmd}
@@ -673,9 +673,58 @@ process prodigal {
 }
 
 /**************************************************************************************************************************************************************
+* minimap2
+**************************************************************************************************************************************************************/
+// 
+
+process minimap2 {
+     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+
+	publishDir "${params.outdir}/minimap2",
+        mode: params.publish_dir_mode
+
+//use container
+    conda (params.enable_conda ? "bioconda::minimap2" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/minimap2%3A2.9--1"
+    } else {
+        container "quay.io/biocontainers/minimap2"
+    }
+
+    input:
+        tuple val(prefix), path (reference_genome)
+        tuple val(prefix), path (trimmed_reads)
+
+    output:
+        tuple val (shortID),path ("${prefix}_${reference_genome}_map.sam"), emit: mappedassembly
+        //path "${prefix}_snippy " , emit: snippy_path
+        //path  "*details.txt" , emit: version
+        //path ".*.log" , emit: snippy_log
+
+    script:
+        task.cpus="${params.threads}"
+        software = "${params.software_versions}"
+    
+    script:
+
+    """
+   	minimap2 -t ${task.cpus} -N 50 -ax sr ${reference_genome} ${trimmed_reads[0]} ${trimmed_reads[2]} > ${prefix}_${reference_genome}_map.sam
+   	
+    echo "version" >>  ${software}
+    minimap2 --version >> ${software}
+    echo "version" >>  ${software}
+
+    echo "\${cmd}" >>  ${software} 
+    """
+
+}
+
+
+/**************************************************************************************************************************************************************
 * Assembly2Gene
 **************************************************************************************************************************************************************/
-
+// 
 
 /**************************************************************************************************************************************************************
 * Report

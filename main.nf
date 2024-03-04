@@ -183,8 +183,9 @@ include { pharokka } from params.modules
 
 // Comparative Genomics
 include { snippy } from params.modules
-//include { bowtie2 } from params.modules
 //include { minimap2 } from params.modules
+
+//include { bowtie2 } from params.modules
 
 // Charaterization of genome
 //include {prodigal} from params.modules
