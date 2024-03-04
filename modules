@@ -418,7 +418,7 @@ process pharokka {
         tuple val(prefix), file(contigs_phage)
 
     output:
-        tuple val(prefix), path ("${prefix}_phage_pharokka_annotation") , emit: pharokka_path, optional: true
+        tuple val(prefix), path ("${prefix}_phage_pharokka_annotation"), emit: pharokka_path, optional: true
         path  "*details.txt" , emit: version, optional: true
         path ".*.log" , emit: pharokka_log, optional: true
 
@@ -435,7 +435,7 @@ process pharokka {
 
         checkcontignum=` grep ">" ${contigs_phage} | wc -l `
 
-        if [  \$checkcontignum > 1 ]; then \$cmd_meta; else \$cmd; fi
+        if [  \$checkcontignum -gt 1 ]; then \$cmd_meta; else \$cmd; fi
 
         echo "version" >>  ${software}
         pharokka.py --version >> ${software}
@@ -473,11 +473,11 @@ process snippy {
     }
 
     input:
-        tuple val(prefix_genome),path reference_genome
+        tuple val(prefix_genome), path (reference_genome)
         tuple val(prefix), path (trimmed_reads)
 
     output:
-        path "${prefix}_snippy " , emit: snippy_path
+        tuple val(prefix), path ("${prefix}_snippy "), emit: snippy_path
         path  "*details.txt" , emit: version
         path ".*.log" , emit: snippy_log
 
@@ -695,7 +695,7 @@ process minimap2 {
         tuple val(prefix), path (trimmed_reads)
 
     output:
-        tuple val (shortID),path ("${prefix}_${reference_genome}_map.sam"), emit: mappedassembly
+        tuple val (shortID), path ("${prefix}_${reference_genome}_map.sam"), emit: mappedassembly
         //path "${prefix}_snippy " , emit: snippy_path
         //path  "*details.txt" , emit: version
         //path ".*.log" , emit: snippy_log
@@ -709,7 +709,7 @@ process minimap2 {
     #check the reference genome format
     checkformat=`head -1 ${reference_genome} | grep 'LOCUS' | wc -l`
 
-    if [ \$checkformat == 0 ]; then FILEFORMAT='fasta' ;else FILEFORMAT='gbk'; fi
+    if [ \$checkformat -eq 0 ]; then FILEFORMAT='fasta' ;else FILEFORMAT='gbk'; fi
 
     touch "${prefix}_${reference_genome}_map.sam"
 
