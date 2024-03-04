@@ -96,6 +96,7 @@ If reference provided read the parameter. If reference not provided then find a 
 
 	if (params.reference){      
 		Channel.fromPath(params.reference, checkIfExists: true)
+			.map{ file -> tuple (file.baseName,file)}
 			.set{ch_in_reference}
 	}
 
@@ -183,7 +184,7 @@ include { pharokka } from params.modules
 
 // Comparative Genomics
 include { snippy } from params.modules
-//include { minimap2 } from params.modules
+include { minimap2 } from params.modules
 
 //include { bowtie2 } from params.modules
 
@@ -299,12 +300,15 @@ workflow pharokka_workflow{
 }
 
 
-workflow snippy_workflow{
+
+
+workflow comparatives_genomics_workflow{
 	take:
 	    ch_in_reference
 		trimmed_reads
 	main:
 		snippy(ch_in_reference,trimmed_reads)
+		minimap2(ch_in_reference,trimmed_reads)
 	emit:
 		snippy_path= snippy.out.snippy_path
 }
@@ -382,8 +386,8 @@ workflow{
 			shortreads_QC_workflow()
 			shortreads_trim_workflow()
 			shortreads_assembly_workflow(shortreads_trim_workflow.out.trimmed_reads)
-			if (params.reference )   {snippy_workflow(ch_in_reference,shortreads_trim_workflow.out.trimmed_reads)
-										snippy_output=snippy_workflow.out.snippy_path
+			if (params.reference )   {comparatives_genomics_workflow(ch_in_reference,shortreads_trim_workflow.out.trimmed_reads)
+										snippy_output=comparatives_genomics_workflow.out.snippy_path
 										}else{ snippy_output=myDefaultInputFile}
 
 		}

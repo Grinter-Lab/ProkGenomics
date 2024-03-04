@@ -435,7 +435,7 @@ process pharokka {
 
         checkcontignum=` grep ">" ${contigs_phage} | wc -l `
 
-        if [  checkcontignum > 1 ]; then \$cmd_meta; else \$cmd; fi
+        if [  \$checkcontignum > 1 ]; then \$cmd_meta; else \$cmd; fi
 
         echo "version" >>  ${software}
         pharokka.py --version >> ${software}
@@ -473,7 +473,7 @@ process snippy {
     }
 
     input:
-        path reference_genome
+        tuple val(prefix_genome),path reference_genome
         tuple val(prefix), path (trimmed_reads)
 
     output:
@@ -487,7 +487,7 @@ process snippy {
     
 
     """
-    cmd="snippy --cpus ${task.cpus} --outdir ${prefix}_snippy --ref $reference_genome --R1 ${trimmed_reads[0]} --R2 ${trimmed_reads[1]}"
+    cmd="snippy --cpus ${task.cpus} --outdir ${prefix}_${prefix_genome}_snippy --ref ${reference_genome} --R1 ${trimmed_reads[0]} --R2 ${trimmed_reads[1]}"
 
     \${cmd}
 
@@ -704,8 +704,6 @@ process minimap2 {
         task.cpus="${params.threads}"
         software = "${params.software_versions}"
     
-    script:
-
     """
 
     #check the reference genome format
@@ -713,7 +711,9 @@ process minimap2 {
 
     if [ \$checkformat == 0 ]; then FILEFORMAT='fasta' ;else FILEFORMAT='gbk'; fi
 
-    
+    touch "${prefix}_${reference_genome}_map.sam"
+
+
     echo "version" >>  ${software}
     minimap2 --version >> ${software}
     echo "version" >>  ${software}
