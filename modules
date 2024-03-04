@@ -433,11 +433,9 @@ process pharokka {
         cmd="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus} -f"
         cmd_meta="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus} -meta -f"
 
+        checkcontignum=` grep ">" ${contigs_phage} | wc -l `
 
-        \${cmd}
-        \${cmd_meta}
-
-        if [ `grep ">" ${contigs_phage}|wc -l` > 1 ]; then \$cmd_meta; else \$cmd; fi
+        if [  checkcontignum > 1 ]; then \$cmd_meta; else \$cmd; fi
 
         echo "version" >>  ${software}
         pharokka.py --version >> ${software}
@@ -693,7 +691,7 @@ process minimap2 {
     }
 
     input:
-        tuple val(prefix), path (reference_genome)
+        tuple val(prefix_genome), path (reference_genome)
         tuple val(prefix), path (trimmed_reads)
 
     output:
@@ -709,16 +707,27 @@ process minimap2 {
     script:
 
     """
-   	minimap2 -t ${task.cpus} -N 50 -ax sr ${reference_genome} ${trimmed_reads[0]} ${trimmed_reads[2]} > ${prefix}_${reference_genome}_map.sam
-   	
+
+    #check the reference genome format
+    checkformat=`head -1 ${reference_genome} | grep 'LOCUS' | wc -l`
+
+    if [ \$checkformat == 0 ]; then FILEFORMAT='fasta' ;else FILEFORMAT='gbk'; fi
+
+    
     echo "version" >>  ${software}
     minimap2 --version >> ${software}
     echo "version" >>  ${software}
-
     echo "\${cmd}" >>  ${software} 
     """
 
 }
+
+
+/**************************************************************************************************************************************************************
+* clinker
+**************************************************************************************************************************************************************/
+// https://depot.galaxyproject.org/singularity/clinker%3A1.33--hdfd78af_0
+// if reference genome is gbk then runs clinker
 
 
 /**************************************************************************************************************************************************************
