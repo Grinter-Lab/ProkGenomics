@@ -58,7 +58,7 @@ params.version="v.1.0.0" //it has to be one word otherwise will mess up the repo
 params.report_template="$baseDir/scripts/report.Rmd"
 params.logo="$baseDir/scripts/Logo.svg"
 params.github="https://github.com/Grinter-Lab/ProkGenomics"
-params.default_empty_file="$baseDir/scripts/NO_APPLICABLE"
+params.default_empty_file="$baseDir/scripts/NO_APPLY"
 params.Rrender="$baseDir/scripts/report_render.R"
 /*************************************************************************************************************************************************************
  * Channels
@@ -116,7 +116,12 @@ If the assembly has been done provide assembly file
 Set defaul channels for omitted steps
 */
 
-myDefaultInputFile = Channel.fromPath(params.default_empty_file)
+ Channel
+ 	.fromPath(params.default_empty_file)
+	.map{ file -> tuple (file.baseName,file)}
+	.set{myDefaultInputFile}	
+
+myDefaultInputFile.view()
 
 /*
 chInputProcessTwo = chNewInputForProcessTwo.ifEmpty(myDefaultInputFile)
@@ -394,8 +399,8 @@ workflow{
 										snippy_output=comparative_genomics_workflow.out.snippy_path
 										minimap2_output = comparative_genomics_workflow.out.minimap2_path
 										}else{ 
-										snippy_output = comparative_genomics_workflow.out.snippy_path.ifEmpty(myDefaultInputFile)
-										minimap2_output = comparative_genomics_workflow.out.minimap2_path.ifEmpty(myDefaultInputFile)
+										snippy_output = myDefaultInputFile
+										minimap2_output = myDefaultInputFile
 										}
 
 		}

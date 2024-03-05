@@ -221,7 +221,7 @@ process checkm {
         tuple val(prefix), path (scaffolds_path)
          
     output:
-        path("${prefix}.tsv")  , emit: checkm_tsv
+        tuple val(prefix), path("${prefix}.tsv")  , emit: checkm_tsv
         path  "*details.txt"   , emit: version
         path ".*.log" , emit: checkm_log
 
@@ -268,12 +268,12 @@ process checkv {
         tuple val(prefix), path (scaffolds)
          
     output:
-        path("${prefix}/quality_summary.tsv"), emit: checkv_summary
-        path("${prefix}/completeness.tsv"), emit: checkv_completeness
-        path("${prefix}/contamination.tsv"), emit: checkv_contamination
-        path("${prefix}/complete_genomes.tsv"), emit: checkv_genomes
-        path("${prefix}/viruses.fna"), emit: checkv_viruses_fna
-        path("${prefix}/proviruses.fna"), emit: checkv_proviruses_fna
+        tuple val(prefix), path("${prefix}/quality_summary.tsv"), emit: checkv_summary
+        tuple val(prefix), path("${prefix}/completeness.tsv"), emit: checkv_completeness
+        tuple val(prefix), path("${prefix}/contamination.tsv"), emit: checkv_contamination
+        tuple val(prefix), path("${prefix}/complete_genomes.tsv"), emit: checkv_genomes
+        tuple val(prefix), path("${prefix}/viruses.fna"), emit: checkv_viruses_fna
+        tuple val(prefix), path("${prefix}/proviruses.fna"), emit: checkv_proviruses_fna
         path  "*details.txt"          , emit: version
         path ".*.log" , emit: checkv_log
 
@@ -323,7 +323,7 @@ process plasclass {
         tuple val(prefix), file(scaffolds)
 
     output:
-        path "${prefix}.probs.out" , emit: plasclass_tsv
+        tuple val(prefix), path ("${prefix}.probs.out") , emit: plasclass_tsv
         path  "*details.txt" , emit: version
         path ".*.log" , emit: plasclass_log
 
@@ -582,8 +582,8 @@ process split_assembly {
 
     input:
         tuple val(prefix), path (scaffolds_path)
-        path (plasclass_tsv)
-        path (checkv_summary)
+        tuple val(prefix), path (plasclass_tsv)
+        tuple val(prefix), path (checkv_summary)
     
     output:
         tuple val(prefix), path("${prefix}_de_novoassembly.fasta"), emit: novoassembly_path, optional: true
@@ -709,17 +709,16 @@ process minimap2 {
     """
 
     #check the reference genome format
-    checkformat=`head -1 ${reference_genome} | grep 'LOCUS' | wc -l`
+    #checkformat=`head -1 ${reference_genome} | grep 'LOCUS' | wc -l`
 
-    if [ \$checkformat -eq 0 ]; then FILEFORMAT='fasta' ;else FILEFORMAT='gbk'; fi
+    #if [ \$checkformat -eq 0 ]; then FILEFORMAT='fasta' ;else FILEFORMAT='gbk'; fi
 
     touch ${prefix}_${reference_genome}_map.sam
-
 
     echo "version" >>  ${software}
     minimap2 --version >> ${software}
     echo "version" >>  ${software}
-    echo "\${cmd}" >>  ${software} 
+    #echo "\${cmd}" >>  ${software} 
     """
 
 }
@@ -766,13 +765,13 @@ process report{
         tuple val(prefix), path (chromosome_path)
         tuple val(prefix), path (plasmid_path)
         tuple val(prefix), path (phage_path)
-        path (checkm_tsv)
+        tuple val(prefix), path (checkm_tsv)
         tuple val(prefix), path (prokka_denovo_path)
         tuple val(prefix), path (prokka_chr_path)
         tuple val(prefix), path (prokka_plasmid_path)
         tuple val(prefix), path (pharokka_path)
-        path (plasmid_class)
-        path (phage_class)
+        tuple val(prefix), path (plasmid_class)
+        tuple val(prefix), path (phage_class)
         tuple val(prefix), path (snippy_path)
         tuple val(prefix), path (gtdbtk_summary)
         tuple val(prefix), path (minimap2_path)
