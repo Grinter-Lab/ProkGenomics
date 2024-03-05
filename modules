@@ -15,7 +15,7 @@ process fastqc {
     maxRetries 3
 
 	publishDir "${params.outdir}/fastqc",
-        mode: params.publish_dir_mode
+        mode: params.intermedia_files 
 	
 	//use container
     conda (params.enable_conda ? "bioconda::fastqc" : null)
@@ -60,7 +60,7 @@ process trimmomatic {
     maxRetries 3
 
 	publishDir "${params.outdir}/trimmomatic",
-        mode: params.publish_dir_mode
+        mode: params.intermedia_files 
 
 	//use container
     conda (params.enable_conda ? "bioconda::trimmomatic" : null)
@@ -120,7 +120,7 @@ process unicycler_short {
     maxRetries 3
 
 	publishDir "${params.outdir}/unicycler",
-        mode: params.publish_dir_mode
+        mode: params.intermedia_files 
 
 	//use container
     conda (params.enable_conda ? "python=3.7 bioconda::unicycler" : null)
@@ -166,7 +166,7 @@ process busco {
 
 
 	publishDir "${params.outdir}/busco",
-        mode: params.publish_dir_mode
+        mode: params.intermedia_files 
 
 	//use container
     conda (params.enable_conda ? "bioconda::busco" : null)
@@ -207,7 +207,7 @@ process checkm {
     maxRetries 3
 
 	publishDir "${params.outdir}/checkm",
-        mode: params.publish_dir_mode
+        mode: params.intermedia_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::checkm-genome" : null)
@@ -254,7 +254,7 @@ process checkv {
     maxRetries 3
 
 	publishDir "${params.outdir}/checkv",
-        mode: params.publish_dir_mode
+        mode: params.intermedia_files 
 
 //use container
     conda (params.enable_conda ? "python=3.7 bioconda::checkv" : null)
@@ -310,7 +310,7 @@ process plasclass {
     //errorStrategy 'ignore'
 
 	publishDir "${params.outdir}/plasclass",
-        mode: params.publish_dir_mode
+        mode: params.intermedia_files 
 
     conda (params.enable_conda ? "python=3.7 bioconda::plasclass": null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -356,7 +356,7 @@ process prokka {
     maxRetries 3
 
 	publishDir "${params.outdir}/prokka",
-        mode: params.publish_dir_mode
+        mode: params.intermedia_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::prokka" : null)
@@ -404,7 +404,7 @@ process pharokka {
     maxRetries 3
 
 	publishDir "${params.outdir}/pharokka",
-        mode: params.publish_dir_mode
+        mode: params.intermedia_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::pharokka" : null)
@@ -462,7 +462,7 @@ process snippy {
     maxRetries 3
 
 	publishDir "${params.outdir}/snippy",
-        mode: params.publish_dir_mode
+        mode: params.intermedia_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::snippy" : null)
@@ -477,7 +477,7 @@ process snippy {
         tuple val(prefix), path (trimmed_reads)
 
     output:
-        tuple val(prefix), path ("${prefix}_snippy "), emit: snippy_path
+        tuple val(prefix), path ("${prefix}_${prefix_genome}_snippy/snps.vcf"), emit: snippy_path
         path  "*details.txt" , emit: version
         path ".*.log" , emit: snippy_log
 
@@ -487,7 +487,8 @@ process snippy {
     
 
     """
-    cmd="snippy --cpus ${task.cpus} --outdir ${prefix}_${prefix_genome}_snippy --ref ${reference_genome} --R1 ${trimmed_reads[0]} --R2 ${trimmed_reads[1]}"
+    echo "again"
+    cmd="snippy --cpus ${task.cpus} --outdir ${prefix}_${prefix_genome}_snippy --ref ${reference_genome} --R1 ${trimmed_reads[0]} --R2 ${trimmed_reads[2]}"
 
     \${cmd}
 
@@ -511,7 +512,7 @@ process gtdb {
     maxRetries 3
     
 	publishDir "${params.outdir}/GTDB",
-        mode: params.publish_dir_mode
+        mode: params.intermedia_files 
 
     conda (params.enable_conda ? "bioconda::gtdbtk" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -569,7 +570,7 @@ process gtdb {
         
 process split_assembly {
 	publishDir "${params.outdir}/splitting_assemblies",
-        mode: params.publish_dir_mode
+        mode: params.intermedia_files 
 
   conda (params.enable_conda ? "bioconda::samtools" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -609,12 +610,11 @@ process split_assembly {
         grep -vwf extrachr.txt all_contigs.txt >chromosome_contigs.txt
 
         #extract contigs
-        xargs samtools faidx ${scaffolds_path} < chromosome_contigs.txt > ${prefix}_chromosome.fasta
-        xargs samtools faidx ${scaffolds_path} < plasmid_contigs.txt > ${prefix}_plasmid.fasta
-        xargs samtools faidx ${scaffolds_path} < phage_contigs.txt > ${prefix}_tmp_phage.fasta
-        awk 'BEGIN { FS=OFS=" " } /^>/ { print \$1"_phage"; next }1' ${prefix}_tmp_phage.fasta > ${prefix}_phage.fasta
+        if [ -s chromosome_contigs.txt ]; then xargs samtools faidx ${scaffolds_path} < chromosome_contigs.txt > ${prefix}_chromosome.fasta; fi
+        if [ -s plasmid_contigs.txt ]; then xargs samtools faidx ${scaffolds_path} < plasmid_contigs.txt > ${prefix}_plasmid.fasta; fi
+        if [ -s phage_contigs.txt ]; then xargs samtools faidx ${scaffolds_path} < phage_contigs.txt > ${prefix}_tmp_phage.fasta; fi
+        if [ -s ${prefix}_tmp_phage.fasta ]; then awk 'BEGIN { FS=OFS=" " } /^>/ { print \$1"_phage"; next }1' ${prefix}_tmp_phage.fasta > ${prefix}_phage.fasta; fi
 
-        
         ln -s ${scaffolds_path} ${prefix}_de_novoassembly.fasta
 
         """
@@ -632,7 +632,7 @@ process prodigal {
     maxRetries 3
 
   	publishDir "${params.outdir}/prodigal",
-        mode: params.publish_dir_mode
+        mode: params.intermedia_files 
 
   conda (params.enable_conda ? "bioconda::prodigal" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -654,6 +654,8 @@ process prodigal {
 
 
     script:
+    task.cpus="${params.threads}"
+    software = "${params.software_versions}"
  
     """
     
@@ -680,7 +682,7 @@ process minimap2 {
     maxRetries 3
 
 	publishDir "${params.outdir}/minimap2",
-        mode: params.publish_dir_mode
+        mode: params.intermedia_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::minimap2" : null)
@@ -695,14 +697,14 @@ process minimap2 {
         tuple val(prefix), path (trimmed_reads)
 
     output:
-        tuple val (shortID), path ("${prefix}_${reference_genome}_map.sam"), emit: mappedassembly
+        tuple val (prefix), path ("${prefix}_${reference_genome}_map.sam"), emit: minimap2_path
         //path "${prefix}_snippy " , emit: snippy_path
         //path  "*details.txt" , emit: version
         //path ".*.log" , emit: snippy_log
 
     script:
-        task.cpus="${params.threads}"
-        software = "${params.software_versions}"
+     task.cpus="${params.threads}"
+    software = "${params.software_versions}"
     
     """
 
@@ -711,7 +713,7 @@ process minimap2 {
 
     if [ \$checkformat -eq 0 ]; then FILEFORMAT='fasta' ;else FILEFORMAT='gbk'; fi
 
-    touch "${prefix}_${reference_genome}_map.sam"
+    touch ${prefix}_${reference_genome}_map.sam
 
 
     echo "version" >>  ${software}
@@ -745,7 +747,7 @@ process report{
     label 'mount_local_scripts'
 
     publishDir "${params.outdir}",
-        mode: params.publish_dir_mode
+        mode: params.publish_dir_mode 
 
     //errorStrategy 'ignore'
       conda (params.enable_conda ? "r-base r-rmarkdown" : null)
@@ -771,14 +773,16 @@ process report{
         tuple val(prefix), path (pharokka_path)
         path (plasmid_class)
         path (phage_class)
-        path (snippy_path)
+        tuple val(prefix), path (snippy_path)
         tuple val(prefix), path (gtdbtk_summary)
+        tuple val(prefix), path (minimap2_path)
         //tuple val(prefix), path (assembly2gene_table)
         //tuple val(prefix), path (assembly2gene_aligments)
         //tuple val(prefix), path (assembly2gene_peptides)
   
     output:
         tuple val(prefix), path("${prefix}_ProkGenomics_report.html"), emit: report_path
+
 
 
     script:
@@ -789,16 +793,8 @@ process report{
         report_template="${params.report_template}"
         Rrender="${params.Rrender}"
 
-
         """    
         echo "Run Rscript in one line in the container"  
-        ln -s ${params.report_template}
-        ln -s ${params.logo}
-        ln -s ${params.Rrender}
-        
-        
-       # Rscript -e 'rmarkdown::render( input = "/tmp/report.Rmd",  output_dir = "${params.outdir}" ,output_file = "${params.outdir}_test.html")'
-
         Rscript /ProkGenomics_scripts/report_render.R  "/ProkGenomics_scripts/report.Rmd" ${params.outdir} ${prefix} ${version} ${github} ${params.outdir}/fastqc/${fastqc_html[0]} ${params.outdir}/fastqc/${fastqc_html[1]} ${params.outdir}/fastqc/${fastqc_trim_html[0]} ${params.outdir}/fastqc/${fastqc_trim_html[2]} ${params.outdir}/unicycler/${novoassembly_path} ${params.outdir}/splitting_assemblies/${chromosome_path} ${params.outdir}/splitting_assemblies/${plasmid_path} ${params.outdir}/splitting_assemblies/${phage_path} ${params.outdir}/checkm/${checkm_tsv} ${params.outdir}/prokka/${prokka_denovo_path} ${params.outdir}/prokka/${prokka_chr_path} ${params.outdir}/prokka/${prokka_plasmid_path} ${params.outdir}/pharokka/${pharokka_path} ${params.outdir}/plasclass/${plasmid_class} ${params.outdir}/checkv/${phage_class}
                                   
         """

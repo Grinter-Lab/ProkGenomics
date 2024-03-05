@@ -48,11 +48,12 @@ params.longreads = null
 params.threads = (16)
 params.outdir = "$PWD/${params.sample_name}_results"
 params.publish_dir_mode = 'copy'
+params.intermedia_files = 'copy'
 params.modules = "$baseDir/modules"
 params.reference = null
 params.software_versions="software_details.txt"
 params.adapter_file="TruSeq3-PE.fa"
-params.assembly=null
+params.assembly= null
 params.version="v.1.0.0" //it has to be one word otherwise will mess up the report
 params.report_template="$baseDir/scripts/report.Rmd"
 params.logo="$baseDir/scripts/Logo.svg"
@@ -302,7 +303,7 @@ workflow pharokka_workflow{
 
 
 
-workflow comparatives_genomics_workflow{
+workflow comparative_genomics_workflow{
 	take:
 	    ch_in_reference
 		trimmed_reads
@@ -311,6 +312,7 @@ workflow comparatives_genomics_workflow{
 		minimap2(ch_in_reference,trimmed_reads)
 	emit:
 		snippy_path= snippy.out.snippy_path
+		minimap2_path= minimap2.out.minimap2_path
 }
 
 workflow gtdb_workflow{
@@ -340,6 +342,7 @@ workflow report_workflow{
         phage_class
 		snippy_path
 		gtdb_path
+		minimap2_path
        // assembly2gene_table
        // assembly2gene_aligments
        // assembly2gene_peptides
@@ -358,7 +361,8 @@ workflow report_workflow{
         plasmid_class,
         phage_class,
 		snippy_path,
-		gtdb_path
+		gtdb_path,
+		minimap2_path
         //assembly2gene_table,
         //assembly2gene_aligments,
         //assembly2gene_peptides
@@ -386,9 +390,13 @@ workflow{
 			shortreads_QC_workflow()
 			shortreads_trim_workflow()
 			shortreads_assembly_workflow(shortreads_trim_workflow.out.trimmed_reads)
-			if (params.reference )   {comparatives_genomics_workflow(ch_in_reference,shortreads_trim_workflow.out.trimmed_reads)
-										snippy_output=comparatives_genomics_workflow.out.snippy_path
-										}else{ snippy_output=myDefaultInputFile}
+			if (params.reference )   {comparative_genomics_workflow(ch_in_reference,shortreads_trim_workflow.out.trimmed_reads)
+										snippy_output=comparative_genomics_workflow.out.snippy_path
+										minimap2_output = comparative_genomics_workflow.out.minimap2_path
+										}else{ 
+										snippy_output = comparative_genomics_workflow.out.snippy_path.ifEmpty(myDefaultInputFile)
+										minimap2_output = comparative_genomics_workflow.out.minimap2_path.ifEmpty(myDefaultInputFile)
+										}
 
 		}
 		assembly_qc_workflow(shortreads_assembly_workflow.out.scaffolds_path)
@@ -427,6 +435,7 @@ workflow{
 	gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty(myDefaultInputFile)
 	assemblyqc_output = assembly_qc_workflow.out.assemblyqc_path.ifEmpty(myDefaultInputFile)
 
+
 	report_workflow(	fastqc_html_output,
 						fastqc_trim_html_output,
 						scaffolds_output,
@@ -441,7 +450,8 @@ workflow{
 						plasclass_output,
         				checkv_output,
         				snippy_output,
-						gtdb_output
+						gtdb_output,
+						minimap2_output
 
         				//assembly2gene_table,
         				//assembly2gene_aligments,
