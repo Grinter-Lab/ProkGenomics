@@ -22,6 +22,8 @@ args = commandArgs(trailingOnly = TRUE)
  plasmid_class= args[19]
  phage_class= args[20]
  snippy_path= args[21]
+ minimap2_path= args[22]
+ gtdb_path= args[23]
 
 cmd <- paste(commandArgs(), collapse=" ")
 cat("How R was invoked:\n");
@@ -39,6 +41,8 @@ plasclass_version=try(system(paste0("if [ -s ",params_outdir,"/plasclass/softwar
 checkv_version=try(system(paste0("if [ -s ",params_outdir,"/checkv/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/checkv/software_details.txt; fi"),intern = TRUE),silent=TRUE)
 checkm_version=try(system(paste0("if [ -s ",params_outdir,"/checkm/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/checkm/software_details.txt; fi"),intern = TRUE),silent=TRUE)
 snippy_version=try(system(paste0("if [ -s ",params_outdir,"/snippy/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/snippy/software_details.txt; fi"),intern = TRUE),silent=TRUE)
+minimap2_version=try(system(paste0("if [ -s ",params_outdir,"/minimap2/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/minimap2/software_details.txt; fi"),intern = TRUE),silent=TRUE)
+gtdb_version=try(system(paste0("if [ -s ",params_outdir,"/GTDB/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/GTDB/software_details.txt; fi"),intern = TRUE),silent=TRUE)
 
 
 
@@ -63,15 +67,21 @@ rmarkdown::render( input  = report_template,
                                 plasmid_class=plasmid_class,
                                 phage_class= phage_class,
                                 novoassembly_path_QC= novoassembly_path_QC,
+                                gtdb_path=gtdb_path,
+                                minimap2_path=gtdb_path,
                                 fastqc_version= fastqc_version,
                                 trimmomatic_version=trimmomatic_version,
                                 unicycler_version=unicycler_version,
                                 snippy_version=snippy_version,
+                                snippy_path=snippy_path,
                                 prokka_version=prokka_version,
                                 pharokka_version=pharokka_version,
                                 plasclass_version=plasclass_version,
                                 checkv_version=checkv_version,
-                                checkm_version=checkm_version
+                                checkm_version=checkm_version,
+                                gtdb_version=gtdb_version,
+                                minimap2_version=minimap2_version
+
                                 ),
                         output_dir = Sys.getenv("PWD"),
                         output_file = file_name

@@ -553,9 +553,9 @@ process gtdb {
     cmd="gtdbtk classify_wf --genome_dir ${chromosome_path} --prefix gtdbtk.${prefix} --out_dir ${prefix}_gtdbtk_classification --cpus ${task.cpus} --skip_ani_screen"
     
     #\${cmd}
-    touch gtdbtk.${prefix}.*.summary.tsv
-    echo "version" >>  ${software}
-    gtdbtk --version >> ${software}
+    touch gtdbtk.${prefix}.test.summary.tsv
+    echo "version" >>  ${software} 
+    gtdbtk --version| sed 's/Copyright 2017 Pierre-Alain Chaumeil, Aaron Mussig and Donovan Parks//' >> ${software}
     echo "version" >>  ${software}
 
     echo "\${cmd}" >>  ${software} 
@@ -697,13 +697,13 @@ process minimap2 {
         tuple val(prefix), path (trimmed_reads)
 
     output:
-        tuple val (prefix), path ("${prefix}_${reference_genome}_map.sam"), emit: minimap2_path
+        tuple val (prefix), path ("${prefix}_${prefix_genome}_map.sam"), emit: minimap2_path
         //path "${prefix}_snippy " , emit: snippy_path
         //path  "*details.txt" , emit: version
         //path ".*.log" , emit: snippy_log
 
     script:
-     task.cpus="${params.threads}"
+    task.cpus="${params.threads}"
     software = "${params.software_versions}"
     
     """
@@ -713,7 +713,7 @@ process minimap2 {
 
     #if [ \$checkformat -eq 0 ]; then FILEFORMAT='fasta' ;else FILEFORMAT='gbk'; fi
 
-    touch ${prefix}_${reference_genome}_map.sam
+    touch ${prefix}_${prefix_genome}_map.sam
 
     echo "version" >>  ${software}
     minimap2 --version >> ${software}
@@ -759,26 +759,27 @@ process report{
     }
 
     input:
-        tuple val(prefix), path (fastqc_html) 
-        tuple val(prefix), path (fastqc_trim_html)
-        tuple val(prefix), path (novoassembly_path)
-        tuple val(prefix), path (chromosome_path)
-        tuple val(prefix), path (plasmid_path)
-        tuple val(prefix), path (phage_path)
-        tuple val(prefix), path (checkm_tsv)
-        tuple val(prefix), path (prokka_denovo_path)
-        tuple val(prefix), path (prokka_chr_path)
-        tuple val(prefix), path (prokka_plasmid_path)
-        tuple val(prefix), path (pharokka_path)
-        tuple val(prefix), path (plasmid_class)
-        tuple val(prefix), path (phage_class)
-        tuple val(prefix), path (snippy_path)
-        tuple val(prefix), path (gtdbtk_summary)
-        tuple val(prefix), path (minimap2_path)
+        tuple val(prefix), path (fastqc_html)
+        tuple val(prefix1), path (fastqc_trim_html)
+        tuple val(prefix2), path (novoassembly_path)
+        tuple val(prefix3), path (chromosome_path)
+        tuple val(prefix4), path (plasmid_path)
+        tuple val(prefix5), path (phage_path)
+        tuple val(prefix6), path (checkm_tsv)
+        tuple val(prefix7), path (prokka_denovo_path)
+        tuple val(prefix8), path (prokka_chr_path)
+        tuple val(prefix9), path (prokka_plasmid_path)
+        tuple val(prefix10), path (pharokka_path)
+        tuple val(prefix11), path (plasmid_class)
+        tuple val(prefix12), path (phage_class)
+        tuple val(prefix13), path (snippy_path)
+        tuple val(prefix15), path (minimap2_path)
+        tuple val(prefix14), path (gtdbtk_summary)
+
         //tuple val(prefix), path (assembly2gene_table)
         //tuple val(prefix), path (assembly2gene_aligments)
         //tuple val(prefix), path (assembly2gene_peptides)
-  
+
     output:
         tuple val(prefix), path("${prefix}_ProkGenomics_report.html"), emit: report_path
 
@@ -792,15 +793,47 @@ process report{
         report_template="${params.report_template}"
         Rrender="${params.Rrender}"
 
-        """    
+        """  
+        echo "again"
+        echo "again"
+        echo "again"
+        echo "again"
+        echo "again"
+        echo "again"
+
         echo "Run Rscript in one line in the container"  
-        Rscript /ProkGenomics_scripts/report_render.R  "/ProkGenomics_scripts/report.Rmd" ${params.outdir} ${prefix} ${version} ${github} ${params.outdir}/fastqc/${fastqc_html[0]} ${params.outdir}/fastqc/${fastqc_html[1]} ${params.outdir}/fastqc/${fastqc_trim_html[0]} ${params.outdir}/fastqc/${fastqc_trim_html[2]} ${params.outdir}/unicycler/${novoassembly_path} ${params.outdir}/splitting_assemblies/${chromosome_path} ${params.outdir}/splitting_assemblies/${plasmid_path} ${params.outdir}/splitting_assemblies/${phage_path} ${params.outdir}/checkm/${checkm_tsv} ${params.outdir}/prokka/${prokka_denovo_path} ${params.outdir}/prokka/${prokka_chr_path} ${params.outdir}/prokka/${prokka_plasmid_path} ${params.outdir}/pharokka/${pharokka_path} ${params.outdir}/plasclass/${plasmid_class} ${params.outdir}/checkv/${phage_class}
+        Rscript /ProkGenomics_scripts/report_render.R  "/ProkGenomics_scripts/report.Rmd"\\
+            ${params.outdir}\\
+            ${prefix} ${version}\\
+            ${github}\\
+            ${params.outdir}/fastqc/${fastqc_html[0]}\\
+            ${params.outdir}/fastqc/${fastqc_html[1]}\\
+            ${params.outdir}/fastqc/${fastqc_trim_html[0]}\\
+            ${params.outdir}/fastqc/${fastqc_trim_html[2]}\\
+            ${params.outdir}/unicycler/${novoassembly_path}\\
+            ${params.outdir}/splitting_assemblies/${chromosome_path}\\
+            ${params.outdir}/splitting_assemblies/${plasmid_path}\\
+            ${params.outdir}/splitting_assemblies/${phage_path}\\
+            ${params.outdir}/checkm/${checkm_tsv}\\
+            ${params.outdir}/prokka/${prokka_denovo_path}\\
+            ${params.outdir}/prokka/${prokka_chr_path}\\
+            ${params.outdir}/prokka/${prokka_plasmid_path}\\
+            ${params.outdir}/pharokka/${pharokka_path}\\
+            ${params.outdir}/plasclass/${plasmid_class}\\
+            ${params.outdir}/checkv/${phage_class}\\
+            ${params.outdir}/snippy/${snippy_path}\\
+            ${params.outdir}/minimap2/${minimap2_path}\\
+            ${params.outdir}/GTDB/${gtdbtk_summary}
+            
                                   
         """
 
 
 
 }
+
+
+
 
 // check the version 
 //sed -n '/version/, /version/{ /version/!p }' software_details.txt 

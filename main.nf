@@ -58,7 +58,7 @@ params.version="v.1.0.0" //it has to be one word otherwise will mess up the repo
 params.report_template="$baseDir/scripts/report.Rmd"
 params.logo="$baseDir/scripts/Logo.svg"
 params.github="https://github.com/Grinter-Lab/ProkGenomics"
-params.default_empty_file="$baseDir/scripts/NO_APPLY"
+params.default_empty_path="$baseDir/scripts/NO_APPLY/myDefaultInputFile*"
 params.Rrender="$baseDir/scripts/report_render.R"
 /*************************************************************************************************************************************************************
  * Channels
@@ -69,10 +69,14 @@ params.Rrender="$baseDir/scripts/report_render.R"
 		.set{ threads_ch }
 
 
-shortreads = "${params.sample_path}/${params.sample_name}*{1,2}*"
-plasmid='plasmids'
-chromosome='chromosome'
-denovoassembly='denovoassembly'
+	shortreads = "${params.sample_path}/${params.sample_name}*{1,2}*"
+
+	plasmid        ='plasmids'
+	chromosome     ='chromosome'
+	denovoassembly ='denovoassembly'
+
+
+
 /*
 Pick the type of de novo-assembly process
 */
@@ -113,27 +117,119 @@ If the assembly has been done provide assembly file
 
 
 /*
-Set defaul channels for omitted steps
-*/
-
- Channel
- 	.fromPath(params.default_empty_file)
-	.map{ file -> tuple (file.baseName,file)}
-	.set{myDefaultInputFile}	
-
-myDefaultInputFile.view()
-
-/*
-chInputProcessTwo = chNewInputForProcessTwo.ifEmpty(myDefaultInputFile)
-
-snippy_output = chNewInputForProcessTwo.ifEmpty(myDefaultInputFile)
+Set default channels for omitted steps
 */
 
 /*
-Define a env or container
+touch myDefaultInputFile_assembly
+touch myDefaultInputFile_assembly_annotation
+touch myDefaultInputFile_chr_annotation
+touch myDefaultInputFile_chr_classification
+touch myDefaultInputFile_chr_extraction
+touch myDefaultInputFile_mapping
+touch myDefaultInputFile_phage_annotation
+touch myDefaultInputFile_phage_classification
+touch myDefaultInputFile_phage_extraction
+touch myDefaultInputFile_plasmid_annotation
+touch myDefaultInputFile_plasmid_classification
+touch myDefaultInputFile_plasmid_extraction
+touch myDefaultInputFile_QC_assembly
+touch myDefaultInputFile_QC_reads
+touch myDefaultInputFile_QC_trimmed_reads
+touch myDefaultInputFile_SNV_detection
 */
- 	//if(params.enable_conda){ch_in_env="conda"}
-	
+
+Channel
+ 	.fromPath(params.default_empty_path)
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile}
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_assembly")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_assembly}
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_assembly_annotation")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_assembly_annotation}
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_chr_annotation")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_chr_annotation}
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_chr_classification")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_chr_classification}
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_chr_extraction")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_chr_extraction}
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_mapping")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_mapping}
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_phage_annotation")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_phage_annotation}
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_phage_classification")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_phage_classification}
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_phage_extraction")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_phage_extraction}
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_plasmid_annotation")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_plasmid_annotation}
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_plasmid_classification")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_plasmid_classification}
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_plasmid_extraction")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_plasmid_extraction}
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_QC_assembly")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_QC_assembly}
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_QC_reads")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_QC_reads}
+
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_QC_trimmed_reads")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_QC_trimmed_reads}
+
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_SNV_detection")
+	.map { [it.name, it ] }
+	.set{myDefaultInputFile_SNV_detection}
+
+
+
+myDefaultInputFile_SNV_detection.view()
+
 /**************************************************************************************************************************************************************
  * Print parameters
  **************************************************************************************************************************************************************/
@@ -261,8 +357,8 @@ workflow split_assembly_workflow{
 	emit:
 		novoassembly_path=split_assembly.out.novoassembly_path
     	chromosome_path=split_assembly.out.chromosome_path
-    	plasmid_path=split_assembly.out.plasmid_path.ifEmpty(myDefaultInputFile)
-    	phage_path=split_assembly.out.phage_path.ifEmpty(myDefaultInputFile)
+    	plasmid_path=split_assembly.out.plasmid_path
+    	phage_path=split_assembly.out.phage_path
 }
 
 workflow prokka_scaffolds_workflow{
@@ -293,7 +389,7 @@ workflow prokka_plasmids_workflow{
 	main:
 		prokka(contigs,plasmid)
 	emit:
-		prokka_path=prokka.out.prokka_path.ifEmpty(myDefaultInputFile)
+		prokka_path=prokka.out.prokka_path
 }
 
 workflow pharokka_workflow{
@@ -302,7 +398,7 @@ workflow pharokka_workflow{
 	main:
 		pharokka(contigs)
 	emit:
-		pharokka_path=pharokka.out.pharokka_path.ifEmpty(myDefaultInputFile)
+		pharokka_path=pharokka.out.pharokka_path
 }
 
 
@@ -328,6 +424,9 @@ workflow gtdb_workflow{
 	emit:
 		gtdb_path= gtdb.out.gtdbtk_summary
 }
+
+
+
 
 
 workflow report_workflow{
@@ -396,49 +495,74 @@ workflow{
 			shortreads_trim_workflow()
 			shortreads_assembly_workflow(shortreads_trim_workflow.out.trimmed_reads)
 			if (params.reference )   {comparative_genomics_workflow(ch_in_reference,shortreads_trim_workflow.out.trimmed_reads)
-										snippy_output=comparative_genomics_workflow.out.snippy_path
+										snippy_output = comparative_genomics_workflow.out.snippy_path
 										minimap2_output = comparative_genomics_workflow.out.minimap2_path
 										}else{ 
-										snippy_output = myDefaultInputFile
-										minimap2_output = myDefaultInputFile
+
+											snippy_output   = myDefaultInputFile_SNV_detection
+											minimap2_output = myDefaultInputFile_mapping
+	
+
 										}
 
 		}
-		assembly_qc_workflow(shortreads_assembly_workflow.out.scaffolds_path)
-		extrachr_workflow(shortreads_assembly_workflow.out.scaffolds)
-		split_assembly_workflow(shortreads_assembly_workflow.out.scaffolds,extrachr_workflow.out.plasclass_tsv,extrachr_workflow.out.checkv_summary)
-		prokka_chr_workflow(split_assembly_workflow.out.chromosome_path,chromosome)
-		prokka_plasmids_workflow(split_assembly_workflow.out.plasmid_path,plasmid)
-		prokka_scaffolds_workflow(shortreads_assembly_workflow.out.scaffolds,denovoassembly)
-		pharokka_workflow(split_assembly_workflow.out.phage_path)
-		gtdb_workflow(split_assembly_workflow.out.chromosome_path)
+			assembly_qc_workflow(shortreads_assembly_workflow.out.scaffolds_path)
+			extrachr_workflow(shortreads_assembly_workflow.out.scaffolds)
+			split_assembly_workflow(shortreads_assembly_workflow.out.scaffolds,extrachr_workflow.out.plasclass_tsv,extrachr_workflow.out.checkv_summary)
+			prokka_chr_workflow(split_assembly_workflow.out.chromosome_path,chromosome)
+			prokka_plasmids_workflow(split_assembly_workflow.out.plasmid_path,plasmid)
+			prokka_scaffolds_workflow(shortreads_assembly_workflow.out.scaffolds,denovoassembly)
+			pharokka_workflow(split_assembly_workflow.out.phage_path)
+			gtdb_workflow(split_assembly_workflow.out.chromosome_path)
+
+
+			fastqc_html_output      	 = shortreads_QC_workflow.out.fastqc_html.ifEmpty{ myDefaultInputFile_QC_reads }
+			fastqc_trim_html_output 	 = shortreads_trim_workflow.out.fastqc_trim_html.ifEmpty{myDefaultInputFile_QC_trimmed_reads }
+			scaffolds_output        	 = shortreads_assembly_workflow.out.scaffolds.ifEmpty{myDefaultInputFile_assembly }
+			assemblyqc_output 			 = assembly_qc_workflow.out.assemblyqc_path.ifEmpty{myDefaultInputFile_QC_assembly }
+			chromosome_path_output  	 = split_assembly_workflow.out.chromosome_path.ifEmpty{myDefaultInputFile_chr_extraction }
+			plasmid_path_output     	 = split_assembly_workflow.out.plasmid_path.ifEmpty{myDefaultInputFile_plasmid_extraction }
+			phage_path_output       	 = split_assembly_workflow.out.phage_path.ifEmpty{myDefaultInputFile_phage_extraction }
+			prokka_scaffolds_path_output = prokka_scaffolds_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_assembly_annotation }
+			prokka_chr_path              = prokka_chr_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_chr_annotation }
+			prokka_plasmids_path 		 = prokka_plasmids_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_plasmid_annotation }
+			pharokka_path 				 = pharokka_workflow.out.pharokka_path.ifEmpty{myDefaultInputFile_phage_annotation }
+			plasclass_output 		     = extrachr_workflow.out.plasclass_tsv.ifEmpty{myDefaultInputFile_plasmid_classification }
+			checkv_output 				 = extrachr_workflow.out.checkv_summary.ifEmpty{myDefaultInputFile_phage_classification }
+			gtdb_output 			 	 = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
+
 
 	}else{
-		extrachr_workflow(ch_in_assembly)
-		split_assembly_workflow(shortreads_assembly_workflow.out.scaffolds,extrachr_workflow.out.plasclass_tsv,extrachr_workflow.out.checkv_summary)
-		prokka_chr_workflow(split_assembly_workflow.out.chromosome_path,chromosome)
-		prokka_plasmids_workflow(split_assembly_workflow.out.plasmid_path,plasmid)
-		prokka_scaffolds_workflow(shortreads_assembly_workflow.out.scaffolds,denovoassembly)
-		pharokka_workflow(split_assembly_workflow.out.phage_path)
-		gtdb_workflow(split_assembly_workflow.out.chromosome_path)
+
+			fastqc_html_output      = myDefaultInputFile_QC_reads
+			fastqc_trim_html_output = myDefaultInputFile_QC_trimmed_reads
+			scaffolds_output        = myDefaultInputFile_assembly
+			assemblyqc_output 		= myDefaultInputFile_QC_assembly
+			snippy_output 			= myDefaultInputFile_SNV_detection
+			minimap2_output 		= myDefaultInputFile_mapping
+
+			extrachr_workflow(ch_in_assembly)
+			split_assembly_workflow(ch_in_assembly,extrachr_workflow.out.plasclass_tsv,extrachr_workflow.out.checkv_summary)
+			prokka_chr_workflow(split_assembly_workflow.out.chromosome_path,chromosome)
+			prokka_plasmids_workflow(split_assembly_workflow.out.plasmid_path,plasmid)
+			prokka_scaffolds_workflow(ch_in_assembly,denovoassembly)
+			pharokka_workflow(split_assembly_workflow.out.phage_path)
+			gtdb_workflow(split_assembly_workflow.out.chromosome_path)
+
+		
+			chromosome_path_output  		= split_assembly_workflow.out.chromosome_path.ifEmpty{ myDefaultInputFile_chr_extraction }
+			plasmid_path_output     		= split_assembly_workflow.out.plasmid_path.ifEmpty{myDefaultInputFile_plasmid_extraction }
+			phage_path_output       		= split_assembly_workflow.out.phage_path.ifEmpty{myDefaultInputFile_phage_extraction }
+			prokka_scaffolds_path_output 	= prokka_scaffolds_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_assembly_annotation }
+			prokka_chr_path         		= prokka_chr_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_chr_annotation }
+			prokka_plasmids_path 			= prokka_plasmids_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_plasmid_annotation }
+			pharokka_path 					= pharokka_workflow.out.pharokka_path.ifEmpty{myDefaultInputFile_phage_annotation }
+			plasclass_output 				= extrachr_workflow.out.plasclass_tsv.ifEmpty{myDefaultInputFile_plasmid_annotation }
+			checkv_output 					= extrachr_workflow.out.checkv_summary.ifEmpty{myDefaultInputFile_phage_classification }
+			gtdb_output 					= gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
 
 	}
 	
-
-	fastqc_html_output      = shortreads_QC_workflow.out.fastqc_html.ifEmpty(myDefaultInputFile)
-	fastqc_trim_html_output = shortreads_trim_workflow.out.fastqc_trim_html.ifEmpty(myDefaultInputFile)
-	scaffolds_output        = shortreads_assembly_workflow.out.scaffolds.ifEmpty(myDefaultInputFile)
-	chromosome_path_output  = split_assembly_workflow.out.chromosome_path.ifEmpty(myDefaultInputFile)
-	plasmid_path_output     = split_assembly_workflow.out.plasmid_path.ifEmpty(myDefaultInputFile)
-	phage_path_output       = split_assembly_workflow.out.phage_path.ifEmpty(myDefaultInputFile)
-	prokka_scaffolds_path_output = prokka_scaffolds_workflow.out.prokka_path.ifEmpty(myDefaultInputFile)
-	prokka_chr_path         = prokka_chr_workflow.out.prokka_path.ifEmpty(myDefaultInputFile)
-	prokka_plasmids_path = prokka_plasmids_workflow.out.prokka_path.ifEmpty(myDefaultInputFile)
-	pharokka_path = pharokka_workflow.out.pharokka_path.ifEmpty(myDefaultInputFile)
-	plasclass_output = extrachr_workflow.out.plasclass_tsv.ifEmpty(myDefaultInputFile)
-    checkv_output = extrachr_workflow.out.checkv_summary.ifEmpty(myDefaultInputFile)
-	gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty(myDefaultInputFile)
-	assemblyqc_output = assembly_qc_workflow.out.assemblyqc_path.ifEmpty(myDefaultInputFile)
 
 
 	report_workflow(	fastqc_html_output,
@@ -455,16 +579,16 @@ workflow{
 						plasclass_output,
         				checkv_output,
         				snippy_output,
-						gtdb_output,
-						minimap2_output
+						minimap2_output,
+						gtdb_output
 
         				//assembly2gene_table,
         				//assembly2gene_aligments,
         				//assembly2gene_peptides
 						)
 
-}
 
+}
 
 
 workflow.onComplete { 

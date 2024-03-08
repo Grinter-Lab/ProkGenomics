@@ -26,6 +26,8 @@ params:
   plasmid_class: "No Found"
   phage_class: "No Found"
   snippy_path: "No Found"
+  gtdb_path: 'No Found'
+  minimap2_path: "No Found"
   assembly2gene_table: "No Found"
   assembly2gene_aligments: "No Found"
   assembly2gene_peptides: "No Found"
@@ -38,6 +40,9 @@ params:
   plasclass_version: 'version'
   checkv_version: 'version'
   checkm_version: 'version'
+  gtdb_version: 'version'
+  minimap2_version: 'version'
+ 
 ---
 
 
@@ -119,6 +124,7 @@ cat( "  - **Annotations** ", params$prokka_denovo_path,"   \n")
 cat( "  - **fasta:** ",  params$chromosome_path,"   \n")
 cat( "  - **QC:** ", params$novoassembly_path_QC,"   \n")
 cat( "  - **Annotations** ", params$prokka_chr_path,"   \n")
+cat( "  - **Classification** ", params$gtdb_path,"   \n")
 ```
 
 - **Plasmids**
@@ -143,6 +149,9 @@ cat( "  - **Annotations** ", params$pharokka_path,"   \n")
 
 ```{r results='asis'}
 cat( "- **Single Nucleotide Variants (SNV):** ", params$snippy_path,"   \n")
+cat( "- **Mapping:** ", params$minimap2_path,"   \n")
+
+
 
 ```
 
@@ -171,8 +180,9 @@ cat( "|[CheckV](https://bitbucket.org/berkeleylab/checkv/src/master/)|",params$c
 cat( "|[Prokka](https://github.com/tseemann/prokka)|",params$prokka_version,"|Prokaryotic gene annotation|Torsten Seemann, Prokka: rapid prokaryotic genome annotation, Bioinformatics, Volume 30, Issue 14, July 2014, Pages 2068–2069, https://doi.org/10.1093/bioinformatics/btu153|\n")
 cat( "|[Pharokka](https://github.com/gbouras13/pharokka)|",params$pharokka_version,"|Phage gene annotation|Bouras G, Nepal R, Houtak G, Psaltis AJ, Wormald PJ, Vreugde S. Pharokka: a fast scalable bacteriophage annotation tool. Bioinformatics. 2023 Jan 1;39(1):btac776. doi: 10.1093/bioinformatics/btac776. PMID: 36453861; PMCID: PMC9805569. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9805569/|\n")
 cat( "|[CheckM](https://github.com/Ecogenomics/CheckM)|",params$checkm_version,"|Assembly quality controls|Parks DH, Imelfort M, Skennerton CT, Hugenholtz P, Tyson GW. CheckM: assessing the quality of microbial genomes recovered from isolates, single cells, and metagenomes. Genome Res. 2015 Jul;25(7):1043-55. doi: 10.1101/gr.186072.114. Epub 2015 May 14. PMID: 25977477; PMCID: PMC4484387. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4484387/|\n")
-cat( "|[Snippy](https://github.com/tseemann/snippy)|",params$snippy_version,"|Single Nucleotide Variant (SNV) detection|\n")
-
+cat( "|[Snippy](https://github.com/tseemann/snippy)|",params$snippy_version,"|Single Nucleotide Variant (SNV) detection|Seemann T (2015). snippy: fast bacterial variant calling from NGS reads. https://github.com/tseemann/snippy|\n")
+cat( "|[Minimap2](https://github.com/lh3/minimap2)|",params$minimap2_version,"|Sequence alignment to reference genome|Heng Li, New strategies to improve minimap2 alignment accuracy, Bioinformatics, Volume 37, Issue 23, December 2021, Pages 4572–4574, https://doi.org/10.1093/bioinformatics/btab705|\n")
+cat( "|[GTDB](https://github.com/Ecogenomics/GTDBTk)|",params$gtdb_version,"|Taxonomic classifications |Donovan H Parks, Maria Chuvochina, Christian Rinke, Aaron J Mussig, Pierre-Alain Chaumeil, Philip Hugenholtz, GTDB: an ongoing census of bacterial and archaeal diversity through a phylogenetically consistent, rank normalized and complete genome-based taxonomy, Nucleic Acids Research, Volume 50, Issue D1, 7 January 2022, Pages D785–D794, https://doi.org/10.1093/nar/gkab776|\n")
 
 
 
