@@ -58,16 +58,22 @@ params.version="v.1.0.0" //it has to be one word otherwise will mess up the repo
 params.report_template="$baseDir/scripts/report.Rmd"
 params.logo="$baseDir/scripts/Logo.svg"
 params.github="https://github.com/Grinter-Lab/ProkGenomics"
-params.default_empty_path="$baseDir/scripts/NO_APPLY/myDefaultInputFile*"
+params.default_empty_path="$baseDir/scripts/NO_APPLY/"
 params.Rrender="$baseDir/scripts/report_render.R"
 /*************************************************************************************************************************************************************
  * Channels
  read parameters in the command line 
  ************************************************************************************************************************************************************/
 
+
+
 	Channel.value( params.threads )
 		.set{ threads_ch }
 
+
+	Channel.value( params.sample_name)
+		.set{ sample_name}
+	
 
 	shortreads = "${params.sample_path}/${params.sample_name}*{1,2}*"
 
@@ -134,101 +140,140 @@ touch myDefaultInputFile_plasmid_annotation
 touch myDefaultInputFile_plasmid_classification
 touch myDefaultInputFile_plasmid_extraction
 touch myDefaultInputFile_QC_assembly
-touch myDefaultInputFile_QC_reads
-touch myDefaultInputFile_QC_trimmed_reads
+touch myDefaultInputFile_QC_reads_forward
+touch myDefaultInputFile_QC_reads_reverse
+touch myDefaultInputFile_QC_trimmed_reads_forward
+touch myDefaultInputFile_QC_trimmed_reads_reverse
+touch myDefaultInputFile_QC_trimmed_reads_unpaired_forward
+touch myDefaultInputFile_QC_trimmed_reads_unpaired_reverse
 touch myDefaultInputFile_SNV_detection
 */
 
+
 Channel
  	.fromPath(params.default_empty_path)
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile}
+
+//myDefaultInputFile.view()
+
+
 
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_assembly")
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_assembly}
+
+//myDefaultInputFile_assembly.view()
+
 
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_assembly_annotation")
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_assembly_annotation}
+
+//myDefaultInputFile_assembly_annotation.view()
 
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_chr_annotation")
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file)}
 	.set{myDefaultInputFile_chr_annotation}
+
+//myDefaultInputFile_chr_annotation.view()
 
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_chr_classification")
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_chr_classification}
+
+//myDefaultInputFile_chr_classification.view()
 
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_chr_extraction")
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file)}
 	.set{myDefaultInputFile_chr_extraction}
+
+//myDefaultInputFile_chr_extraction.view()
 
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_mapping")
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_mapping}
+
+//myDefaultInputFile_mapping.view()
 
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_phage_annotation")
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_phage_annotation}
+
+//myDefaultInputFile_phage_annotation.view()
 
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_phage_classification")
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file)}
 	.set{myDefaultInputFile_phage_classification}
+
+//myDefaultInputFile_phage_classification.view()
 
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_phage_extraction")
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_phage_extraction}
+
+//myDefaultInputFile_phage_extraction.view()
 
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_plasmid_annotation")
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_plasmid_annotation}
+
+//myDefaultInputFile_plasmid_annotation.view()
 
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_plasmid_classification")
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_plasmid_classification}
+
+//myDefaultInputFile_plasmid_classification.view()
 
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_plasmid_extraction")
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_plasmid_extraction}
+
+//myDefaultInputFile_plasmid_extraction.view()
 
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_QC_assembly")
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file)}
 	.set{myDefaultInputFile_QC_assembly}
 
+//myDefaultInputFile_QC_assembly.view()
+
 Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_QC_reads")
-	.map { [it.name, it ] }
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_QC_reads*")
+	.collect()
+	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_QC_reads}
 
+//myDefaultInputFile_QC_reads.view()
 
 Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_QC_trimmed_reads")
-	.map { [it.name, it ] }
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_QC_trimmed_*")
+	.collect()
+	.map { file -> tuple (file.baseName,file)}
 	.set{myDefaultInputFile_QC_trimmed_reads}
+
+//myDefaultInputFile_QC_trimmed_reads.view()
 
 
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_SNV_detection")
-	.map { [it.name, it ] }
+	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_SNV_detection}
 
 
-
-myDefaultInputFile_SNV_detection.view()
 
 /**************************************************************************************************************************************************************
  * Print parameters
@@ -428,9 +473,9 @@ workflow gtdb_workflow{
 
 
 
-
 workflow report_workflow{
 	take:
+		sample_name
 		fastqc_html 
 		fastqc_trim_html 
     	novoassembly_path
@@ -450,8 +495,10 @@ workflow report_workflow{
        // assembly2gene_table
        // assembly2gene_aligments
        // assembly2gene_peptides
-	main:
-		report(fastqc_html,
+	main:	
+	 report(
+		sample_name,
+		fastqc_html,
 		fastqc_trim_html,
         novoassembly_path,
         chromosome_path,
@@ -494,18 +541,15 @@ workflow{
 			shortreads_QC_workflow()
 			shortreads_trim_workflow()
 			shortreads_assembly_workflow(shortreads_trim_workflow.out.trimmed_reads)
-			if (params.reference )   {comparative_genomics_workflow(ch_in_reference,shortreads_trim_workflow.out.trimmed_reads)
+				if (params.reference ){ comparative_genomics_workflow(ch_in_reference,shortreads_trim_workflow.out.trimmed_reads)
 										snippy_output = comparative_genomics_workflow.out.snippy_path
 										minimap2_output = comparative_genomics_workflow.out.minimap2_path
 										}else{ 
-
-											snippy_output   = myDefaultInputFile_SNV_detection
-											minimap2_output = myDefaultInputFile_mapping
-	
-
+										snippy_output = myDefaultInputFile_SNV_detection
+										minimap2_output = myDefaultInputFile_mapping
 										}
 
-		}
+		
 			assembly_qc_workflow(shortreads_assembly_workflow.out.scaffolds_path)
 			extrachr_workflow(shortreads_assembly_workflow.out.scaffolds)
 			split_assembly_workflow(shortreads_assembly_workflow.out.scaffolds,extrachr_workflow.out.plasclass_tsv,extrachr_workflow.out.checkv_summary)
@@ -516,30 +560,37 @@ workflow{
 			gtdb_workflow(split_assembly_workflow.out.chromosome_path)
 
 
-			fastqc_html_output      	 = shortreads_QC_workflow.out.fastqc_html.ifEmpty{ myDefaultInputFile_QC_reads }
-			fastqc_trim_html_output 	 = shortreads_trim_workflow.out.fastqc_trim_html.ifEmpty{myDefaultInputFile_QC_trimmed_reads }
-			scaffolds_output        	 = shortreads_assembly_workflow.out.scaffolds.ifEmpty{myDefaultInputFile_assembly }
-			assemblyqc_output 			 = assembly_qc_workflow.out.assemblyqc_path.ifEmpty{myDefaultInputFile_QC_assembly }
-			chromosome_path_output  	 = split_assembly_workflow.out.chromosome_path.ifEmpty{myDefaultInputFile_chr_extraction }
-			plasmid_path_output     	 = split_assembly_workflow.out.plasmid_path.ifEmpty{myDefaultInputFile_plasmid_extraction }
-			phage_path_output       	 = split_assembly_workflow.out.phage_path.ifEmpty{myDefaultInputFile_phage_extraction }
+			fastqc_html_output = shortreads_QC_workflow.out.fastqc_html.ifEmpty{ myDefaultInputFile_QC_reads }
+			fastqc_trim_html_output = shortreads_trim_workflow.out.fastqc_trim_html.ifEmpty{myDefaultInputFile_QC_trimmed_reads }
+			scaffolds_output = shortreads_assembly_workflow.out.scaffolds.ifEmpty{myDefaultInputFile_assembly }
+			assemblyqc_output = assembly_qc_workflow.out.assemblyqc_path.ifEmpty{myDefaultInputFile_QC_assembly }
+			chromosome_path_output = split_assembly_workflow.out.chromosome_path.ifEmpty{myDefaultInputFile_chr_extraction }
+			plasmid_path_output = split_assembly_workflow.out.plasmid_path.ifEmpty{myDefaultInputFile_plasmid_extraction }
+			phage_path_output = split_assembly_workflow.out.phage_path.ifEmpty{myDefaultInputFile_phage_extraction }
 			prokka_scaffolds_path_output = prokka_scaffolds_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_assembly_annotation }
-			prokka_chr_path              = prokka_chr_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_chr_annotation }
-			prokka_plasmids_path 		 = prokka_plasmids_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_plasmid_annotation }
-			pharokka_path 				 = pharokka_workflow.out.pharokka_path.ifEmpty{myDefaultInputFile_phage_annotation }
-			plasclass_output 		     = extrachr_workflow.out.plasclass_tsv.ifEmpty{myDefaultInputFile_plasmid_classification }
-			checkv_output 				 = extrachr_workflow.out.checkv_summary.ifEmpty{myDefaultInputFile_phage_classification }
-			gtdb_output 			 	 = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
+			prokka_chr_path = prokka_chr_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_chr_annotation }
+			prokka_plasmids_path = prokka_plasmids_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_plasmid_annotation }
+			pharokka_path = pharokka_workflow.out.pharokka_path.ifEmpty{myDefaultInputFile_phage_annotation }
+			plasclass_output = extrachr_workflow.out.plasclass_tsv.ifEmpty{myDefaultInputFile_plasmid_classification }
+			checkv_output = extrachr_workflow.out.checkv_summary.ifEmpty{myDefaultInputFile_phage_classification }
+			gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
 
+			}else if(params.assembly_type=='long')
+				{
 
-	}else{
+			}else if(params.assembly_type=='hybrid')
+				{
 
-			fastqc_html_output      = myDefaultInputFile_QC_reads
+					}
+
+		}else{
+
+			fastqc_html_output = myDefaultInputFile_QC_reads
 			fastqc_trim_html_output = myDefaultInputFile_QC_trimmed_reads
-			scaffolds_output        = myDefaultInputFile_assembly
-			assemblyqc_output 		= myDefaultInputFile_QC_assembly
-			snippy_output 			= myDefaultInputFile_SNV_detection
-			minimap2_output 		= myDefaultInputFile_mapping
+			scaffolds_output = myDefaultInputFile_assembly
+			assemblyqc_output = myDefaultInputFile_QC_assembly
+			snippy_output = myDefaultInputFile_SNV_detection
+			minimap2_output = myDefaultInputFile_mapping
 
 			extrachr_workflow(ch_in_assembly)
 			split_assembly_workflow(ch_in_assembly,extrachr_workflow.out.plasclass_tsv,extrachr_workflow.out.checkv_summary)
@@ -549,46 +600,45 @@ workflow{
 			pharokka_workflow(split_assembly_workflow.out.phage_path)
 			gtdb_workflow(split_assembly_workflow.out.chromosome_path)
 
-		
-			chromosome_path_output  		= split_assembly_workflow.out.chromosome_path.ifEmpty{ myDefaultInputFile_chr_extraction }
-			plasmid_path_output     		= split_assembly_workflow.out.plasmid_path.ifEmpty{myDefaultInputFile_plasmid_extraction }
-			phage_path_output       		= split_assembly_workflow.out.phage_path.ifEmpty{myDefaultInputFile_phage_extraction }
-			prokka_scaffolds_path_output 	= prokka_scaffolds_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_assembly_annotation }
-			prokka_chr_path         		= prokka_chr_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_chr_annotation }
-			prokka_plasmids_path 			= prokka_plasmids_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_plasmid_annotation }
-			pharokka_path 					= pharokka_workflow.out.pharokka_path.ifEmpty{myDefaultInputFile_phage_annotation }
-			plasclass_output 				= extrachr_workflow.out.plasclass_tsv.ifEmpty{myDefaultInputFile_plasmid_annotation }
-			checkv_output 					= extrachr_workflow.out.checkv_summary.ifEmpty{myDefaultInputFile_phage_classification }
-			gtdb_output 					= gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
-
-	}
-	
+			chromosome_path_output = split_assembly_workflow.out.chromosome_path.ifEmpty{ myDefaultInputFile_chr_extraction }
+			plasmid_path_output = split_assembly_workflow.out.plasmid_path.ifEmpty{myDefaultInputFile_plasmid_extraction }
+			phage_path_output = split_assembly_workflow.out.phage_path.ifEmpty{myDefaultInputFile_phage_extraction }
+			prokka_scaffolds_path_output = prokka_scaffolds_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_assembly_annotation }
+			prokka_chr_path = prokka_chr_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_chr_annotation }
+			prokka_plasmids_path = prokka_plasmids_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_plasmid_annotation }
+			pharokka_path = pharokka_workflow.out.pharokka_path.ifEmpty{myDefaultInputFile_phage_annotation }
+			plasclass_output = extrachr_workflow.out.plasclass_tsv.ifEmpty{myDefaultInputFile_plasmid_annotation }
+			checkv_output = extrachr_workflow.out.checkv_summary.ifEmpty{myDefaultInputFile_phage_classification }
+			gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
+		}
 
 
-	report_workflow(	fastqc_html_output,
-						fastqc_trim_html_output,
-						scaffolds_output,
-						chromosome_path_output,
-						plasmid_path_output,
-						phage_path_output,
-						assemblyqc_output,
-						prokka_scaffolds_path_output,
-						prokka_chr_path,
-						prokka_plasmids_path,
-						pharokka_path,
-						plasclass_output,
-        				checkv_output,
-        				snippy_output,
-						minimap2_output,
-						gtdb_output
+
+	report_workflow( sample_name,
+					 fastqc_html_output,
+					 fastqc_trim_html_output,
+					 scaffolds_output,
+					 chromosome_path_output,
+					 plasmid_path_output,
+					 phage_path_output,
+					 assemblyqc_output,
+					 prokka_scaffolds_path_output,
+					 prokka_chr_path,
+					 prokka_plasmids_path,
+					 pharokka_path,
+					 plasclass_output,
+        			 checkv_output,
+        			 snippy_output,
+					 minimap2_output,
+					 gtdb_output
 
         				//assembly2gene_table,
         				//assembly2gene_aligments,
         				//assembly2gene_peptides
-						)
-
-
+					)
 }
+
+
 
 
 workflow.onComplete { 

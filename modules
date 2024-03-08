@@ -759,7 +759,8 @@ process report{
     }
 
     input:
-        tuple val(prefix), path (fastqc_html)
+        val (prefix)
+        tuple val(prefix0), path (fastqc_html)
         tuple val(prefix1), path (fastqc_trim_html)
         tuple val(prefix2), path (novoassembly_path)
         tuple val(prefix3), path (chromosome_path)
@@ -783,8 +784,6 @@ process report{
     output:
         tuple val(prefix), path("${prefix}_ProkGenomics_report.html"), emit: report_path
 
-
-
     script:
         task.cpus="${params.threads}"
         software= "${params.software_versions}"
@@ -795,11 +794,7 @@ process report{
 
         """  
         echo "again"
-        echo "again"
-        echo "again"
-        echo "again"
-        echo "again"
-        echo "again"
+
 
         echo "Run Rscript in one line in the container"  
         Rscript /ProkGenomics_scripts/report_render.R  "/ProkGenomics_scripts/report.Rmd"\\

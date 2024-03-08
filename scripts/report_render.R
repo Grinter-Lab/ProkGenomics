@@ -1,29 +1,33 @@
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly = TRUE)
- #report_template=args[6]
- report_template=args[1]
- params_outdir= args[2]
- prefix_sample= args[3] 
- version= args[4]
- github= args[5]
- fastqc_r1= args[6]
- fastqc_r2= args[7]
- fastqc_trim_r1= args[8]
- fastqc_trim_r2= args[9]
- novoassembly_path= args[10]
- chromosome_path= args[11]
- plasmid_path= args[12]
- phage_path= args[13]
- novoassembly_path_QC= args[14]
- prokka_denovo_path= args[15]
- prokka_chr_path= args[16]
- prokka_plasmid_path= args[17]
- pharokka_path= args[18]
- plasmid_class= args[19]
- phage_class= args[20]
- snippy_path= args[21]
- minimap2_path= args[22]
- gtdb_path= args[23]
+report_template=args[1]
+params_outdir= args[2]
+
+parameters<- c( prefix_sample= args[3] ,
+                version= args[4],
+                github= args[5],
+                fastqc_r1= args[6],
+                fastqc_r2= args[7],
+                fastqc_trim_r1= args[8],
+                fastqc_trim_r2= args[9],
+                novoassembly_path= args[10],
+                chromosome_path= args[11],
+                plasmid_path= args[12],
+                phage_path= args[13],
+                novoassembly_path_QC= args[14],
+                prokka_denovo_path= args[15],
+                prokka_chr_path= args[16],
+                prokka_plasmid_path= args[17],
+                pharokka_path= args[18],
+                plasmid_class= args[19],
+                phage_class= args[20],
+                snippy_path= args[21],
+                minimap2_path= args[22],
+                gtdb_path= args[23])
+
+
+parameters<-as.data.frame(t(gsub(".+myDefaultInputFile.+","NO_APPLY",parameters)))
+file_name=paste0(parameters$prefix_sample,"_ProkGenomics_report.html")
 
 cmd <- paste(commandArgs(), collapse=" ")
 cat("How R was invoked:\n");
@@ -46,34 +50,32 @@ gtdb_version=try(system(paste0("if [ -s ",params_outdir,"/GTDB/software_details.
 
 
 
-file_name=paste0(prefix_sample,"_ProkGenomics_report.html")
-
 rmarkdown::render( input  = report_template, 
                    params=list(
-                                version= version, 
-                                github= github,
-                                fastqc_r1= fastqc_r1,
-                                fastqc_r2= fastqc_r2,
-                                fastqc_trim_r1= fastqc_trim_r1,
-                                fastqc_trim_r2= fastqc_trim_r2,
-                                novoassembly_path= novoassembly_path,
-                                chromosome_path= chromosome_path,
-                                plasmid_path= plasmid_path,
-                                phage_path= phage_path,
-                                prokka_denovo_path= prokka_denovo_path,
-                                prokka_chr_path= prokka_chr_path,
-                                prokka_plasmid_path= prokka_plasmid_path,
-                                pharokka_path= pharokka_path,
-                                plasmid_class=plasmid_class,
-                                phage_class= phage_class,
-                                novoassembly_path_QC= novoassembly_path_QC,
-                                gtdb_path=gtdb_path,
-                                minimap2_path=gtdb_path,
+                                version= parameters$version, 
+                                github= parameters$github,
+                                fastqc_r1= parameters$fastqc_r1,
+                                fastqc_r2= parameters$fastqc_r2,
+                                fastqc_trim_r1= parameters$fastqc_trim_r1,
+                                fastqc_trim_r2= parameters$fastqc_trim_r2,
+                                novoassembly_path= parameters$novoassembly_path,
+                                chromosome_path= parameters$chromosome_path,
+                                plasmid_path= parameters$plasmid_path,
+                                phage_path= parameters$phage_path,
+                                prokka_denovo_path= parameters$prokka_denovo_path,
+                                prokka_chr_path= parameters$prokka_chr_path,
+                                prokka_plasmid_path= parameters$prokka_plasmid_path,
+                                pharokka_path= parameters$pharokka_path,
+                                plasmid_class=parameters$plasmid_class,
+                                phage_class= parameters$phage_class,
+                                novoassembly_path_QC= parameters$novoassembly_path_QC,
+                                gtdb_path=parameters$gtdb_path,
+                                minimap2_path=parameters$gtdb_path,
+                                snippy_path=parameters$snippy_path,
                                 fastqc_version= fastqc_version,
                                 trimmomatic_version=trimmomatic_version,
                                 unicycler_version=unicycler_version,
                                 snippy_version=snippy_version,
-                                snippy_path=snippy_path,
                                 prokka_version=prokka_version,
                                 pharokka_version=pharokka_version,
                                 plasclass_version=plasclass_version,
