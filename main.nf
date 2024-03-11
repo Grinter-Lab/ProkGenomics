@@ -273,7 +273,10 @@ Channel
 	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_SNV_detection}
 
-
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_stats")
+	.map { file -> tuple (file.baseName,file) }
+	.set{myDefaultInputFile_stats}
 
 /**************************************************************************************************************************************************************
  * Print parameters
@@ -331,7 +334,9 @@ include { pharokka } from params.modules
 
 // Comparative Genomics
 include { snippy } from params.modules
+include { reference_format } from params.modules
 include { minimap2 } from params.modules
+include { get_coverage } from params.modules
 
 //include { bowtie2 } from params.modules
 
@@ -455,10 +460,13 @@ workflow comparative_genomics_workflow{
 		trimmed_reads
 	main:
 		snippy(ch_in_reference,trimmed_reads)
-		minimap2(ch_in_reference,trimmed_reads)
+		reference_format(ch_in_reference)
+		minimap2(reference_format.out.reference_genome_ready,trimmed_reads)
+		get_coverage(minimap2.out.minimap2_path)
 	emit:
 		snippy_path= snippy.out.snippy_path
 		minimap2_path= minimap2.out.minimap2_path
+		stats_path=get_coverage.out.stats_path
 }
 
 workflow gtdb_workflow{
@@ -490,8 +498,10 @@ workflow report_workflow{
         plasmid_class
         phage_class
 		snippy_path
-		gtdb_path
 		minimap2_path
+		gtdb_path
+		stats_path
+
        // assembly2gene_table
        // assembly2gene_aligments
        // assembly2gene_peptides
@@ -512,8 +522,9 @@ workflow report_workflow{
         plasmid_class,
         phage_class,
 		snippy_path,
+		minimap2_path,
 		gtdb_path,
-		minimap2_path
+		stats_path
         //assembly2gene_table,
         //assembly2gene_aligments,
         //assembly2gene_peptides
@@ -544,9 +555,11 @@ workflow{
 				if (params.reference ){ comparative_genomics_workflow(ch_in_reference,shortreads_trim_workflow.out.trimmed_reads)
 										snippy_output = comparative_genomics_workflow.out.snippy_path
 										minimap2_output = comparative_genomics_workflow.out.minimap2_path
+										stats_output = comparative_genomics_workflow.out.stats_path
 										}else{ 
 										snippy_output = myDefaultInputFile_SNV_detection
 										minimap2_output = myDefaultInputFile_mapping
+										stats_output = myDefaultInputFile_stats
 										}
 
 		
@@ -591,6 +604,7 @@ workflow{
 			assemblyqc_output = myDefaultInputFile_QC_assembly
 			snippy_output = myDefaultInputFile_SNV_detection
 			minimap2_output = myDefaultInputFile_mapping
+			stats_output = myDefaultInputFile_stats
 
 			extrachr_workflow(ch_in_assembly)
 			split_assembly_workflow(ch_in_assembly,extrachr_workflow.out.plasclass_tsv,extrachr_workflow.out.checkv_summary)
@@ -630,7 +644,8 @@ workflow{
         			 checkv_output,
         			 snippy_output,
 					 minimap2_output,
-					 gtdb_output
+					 gtdb_output,
+					 stats_output
 
         				//assembly2gene_table,
         				//assembly2gene_aligments,

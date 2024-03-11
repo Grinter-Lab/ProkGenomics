@@ -508,6 +508,9 @@ process snippy {
 
 
 process gtdb {
+
+    label 'mount_local_scripts'
+    
      errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
     maxRetries 3
     
@@ -542,18 +545,13 @@ process gtdb {
     software = "${params.software_versions}"
    
     """
-   #while true; do
-    #    wget -T 15 -c https://data.gtdb.ecogenomic.org/releases/release214/214.0/auxillary_files/gtdbtk_r214_data.tar.gz && break
-    #done
-    
-    #tar -xvzf gtdbtk_r214_data.tar.gz
-    #GTDBTK_DATA_PATH="./release214"
 
-    #download-db.sh
+
+    download-db.sh || ./ProkGenomics_scripts/db_gtdb.sh
     cmd="gtdbtk classify_wf --genome_dir ${chromosome_path} --prefix gtdbtk.${prefix} --out_dir ${prefix}_gtdbtk_classification --cpus ${task.cpus} --skip_ani_screen"
     
-    #\${cmd}
-    touch gtdbtk.${prefix}.test.summary.tsv
+    \${cmd}
+  
     echo "version" >>  ${software} 
     gtdbtk --version| sed 's/Copyright 2017 Pierre-Alain Chaumeil, Aaron Mussig and Donovan Parks//' >> ${software}
     echo "version" >>  ${software}
@@ -673,11 +671,59 @@ process prodigal {
 }
 
 /**************************************************************************************************************************************************************
+* modify reference
+**************************************************************************************************************************************************************/
+
+
+process reference_format {
+
+    label 'bash_var_zro_one'
+    
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+
+  	publishDir "${params.outdir}/minimap2",
+        mode: params.intermedia_files 
+
+  conda (params.enable_conda ? "anaconda::biopython" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/biopython%3A1.81"
+    } else {
+        container "quay.io/biocontainers/biopython"
+    }
+
+   input:
+        tuple val(prefix_genome), path (reference_genome)
+
+    output:
+        tuple val(prefix_genome), path("${prefix_genome}_ready.fasta"), emit: reference_genome_ready
+
+    script:
+        task.cpus="${params.threads}"
+        software = "${params.software_versions}"
+        """
+        # this was a funny error. because process.shell = ['/bin/bash', '-euo', 'pipefail'] when the variable is 1 it thinks it is a error (exit 1) 
+        # check the reference genome format
+        
+        checkformat=\$(head -1 ${reference_genome}| grep "LOCUS"| wc -l)
+        if [ \$checkformat -eq 0 ]; then FILEFORMAT='fasta' ; else FILEFORMAT='gbk'; fi
+
+        if [ \$FILEFORMAT == 'gbk' ]; then python -c "from Bio import SeqIO; SeqIO.convert(\'${reference_genome}\', 'genbank',\'${prefix_genome}_ready.fasta\', 'fasta')"; else cp ${reference_genome} ${prefix_genome}_ready.fasta; fi
+        
+        """
+}
+
+
+
+
+
+/**************************************************************************************************************************************************************
 * minimap2
 **************************************************************************************************************************************************************/
 // 
 
 process minimap2 {
+   // label 'mount_bash_basics'
      errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
     maxRetries 3
 
@@ -693,36 +739,60 @@ process minimap2 {
     }
 
     input:
-        tuple val(prefix_genome), path (reference_genome)
+        tuple val(prefix_genome), path (reference_genome_ready)
         tuple val(prefix), path (trimmed_reads)
 
     output:
         tuple val (prefix), path ("${prefix}_${prefix_genome}_map.sam"), emit: minimap2_path
-        //path "${prefix}_snippy " , emit: snippy_path
-        //path  "*details.txt" , emit: version
-        //path ".*.log" , emit: snippy_log
+        path  "*details.txt" , emit: version
+        path ".*.log" , emit: minimap2_log
 
     script:
-    task.cpus="${params.threads}"
-    software = "${params.software_versions}"
-    
-    """
+        task.cpus="${params.threads}"
+        software = "${params.software_versions}"
+        
+        """
+        minimap2 -ax sr ${prefix_genome}_ready.fasta ${trimmed_reads[0]} ${trimmed_reads[2]} > ${prefix}_${prefix_genome}_map.sam
+        
 
-    #check the reference genome format
-    #checkformat=`head -1 ${reference_genome} | grep 'LOCUS' | wc -l`
-
-    #if [ \$checkformat -eq 0 ]; then FILEFORMAT='fasta' ;else FILEFORMAT='gbk'; fi
-
-    touch ${prefix}_${prefix_genome}_map.sam
-
-    echo "version" >>  ${software}
-    minimap2 --version >> ${software}
-    echo "version" >>  ${software}
-    #echo "\${cmd}" >>  ${software} 
-    """
+        echo "version" >>  ${software}
+        minimap2 --version >> ${software}
+        echo "version" >>  ${software}
+        
+        """
 
 }
 
+/**************************************************************************************************************************************************************
+* get coverage
+**************************************************************************************************************************************************************/
+
+process get_coverage {
+	publishDir "${params.outdir}/minimap2",
+        mode: params.intermedia_files 
+
+  conda (params.enable_conda ? "bioconda::samtools" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/samtools%3A1.9--h91753b0_8"
+    } else {
+        container "quay.io/biocontainers/samtools"
+    }
+    input:
+        tuple val(prefix), path(mapped)
+
+    output:
+        tuple val (prefix), path ("${prefix}_coverage_stast.txt"), emit: stats_path
+
+    script:
+        task.cpus="${params.threads}"
+        software = "${params.software_versions}"
+        
+        """
+        samtools flagstat ${mapped} > ${prefix}_coverage_stast.txt
+        
+        """
+
+}
 
 /**************************************************************************************************************************************************************
 * clinker
@@ -776,6 +846,7 @@ process report{
         tuple val(prefix13), path (snippy_path)
         tuple val(prefix15), path (minimap2_path)
         tuple val(prefix14), path (gtdbtk_summary)
+        tuple val(prefix15), path (stats_path)
 
         //tuple val(prefix), path (assembly2gene_table)
         //tuple val(prefix), path (assembly2gene_aligments)
@@ -793,6 +864,9 @@ process report{
         Rrender="${params.Rrender}"
 
         """  
+        echo "again"
+        echo "again"
+        echo "again"
         echo "again"
 
 
@@ -818,7 +892,8 @@ process report{
             ${params.outdir}/checkv/${phage_class}\\
             ${params.outdir}/snippy/${snippy_path}\\
             ${params.outdir}/minimap2/${minimap2_path}\\
-            ${params.outdir}/GTDB/${gtdbtk_summary}
+            ${params.outdir}/GTDB/${gtdbtk_summary}\\
+            ${params.outdir}/minimap2/${stats_path}
             
                                   
         """

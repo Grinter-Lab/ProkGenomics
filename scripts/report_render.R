@@ -23,7 +23,8 @@ parameters<- c( prefix_sample= args[3] ,
                 phage_class= args[20],
                 snippy_path= args[21],
                 minimap2_path= args[22],
-                gtdb_path= args[23])
+                gtdb_path= args[23],
+                stats_path=args[24])
 
 
 parameters<-as.data.frame(t(gsub(".+myDefaultInputFile.+","NO_APPLY",parameters)))
@@ -70,7 +71,7 @@ rmarkdown::render( input  = report_template,
                                 phage_class= parameters$phage_class,
                                 novoassembly_path_QC= parameters$novoassembly_path_QC,
                                 gtdb_path=parameters$gtdb_path,
-                                minimap2_path=parameters$gtdb_path,
+                                minimap2_path=parameters$minimap2_path,
                                 snippy_path=parameters$snippy_path,
                                 fastqc_version= fastqc_version,
                                 trimmomatic_version=trimmomatic_version,
@@ -82,7 +83,8 @@ rmarkdown::render( input  = report_template,
                                 checkv_version=checkv_version,
                                 checkm_version=checkm_version,
                                 gtdb_version=gtdb_version,
-                                minimap2_version=minimap2_version
+                                minimap2_version=minimap2_version,
+                                stats_path=stats_path
 
                                 ),
                         output_dir = Sys.getenv("PWD"),

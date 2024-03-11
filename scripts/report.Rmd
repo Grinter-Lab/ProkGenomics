@@ -31,6 +31,7 @@ params:
   assembly2gene_table: "No Found"
   assembly2gene_aligments: "No Found"
   assembly2gene_peptides: "No Found"
+  stats_path: 'No Found'
   fastqc_version: 'version'
   trimmomatic_version: 'version'
   unicycler_version: 'version'
@@ -42,6 +43,7 @@ params:
   checkm_version: 'version'
   gtdb_version: 'version'
   minimap2_version: 'version'
+
  
 ---
 
@@ -150,6 +152,7 @@ cat( "  - **Annotations** ", params$pharokka_path,"   \n")
 ```{r results='asis'}
 cat( "- **Single Nucleotide Variants (SNV):** ", params$snippy_path,"   \n")
 cat( "- **Mapping:** ", params$minimap2_path,"   \n")
+cat( "- **Coverage Stats:** ", params$stats_path,"   \n")
 
 
 
