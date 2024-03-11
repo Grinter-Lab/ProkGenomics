@@ -282,7 +282,7 @@ process checkv {
         software="${params.software_versions}"
         """
         chmod a+x /ProkGenomics_scripts/db_checkv.sh
-        checkv download_database ./ || ./ProkGenomics_scripts/db_checkv.sh
+        checkv download_database ./ || /ProkGenomics_scripts/db_checkv.sh
 
         cmd="checkv end_to_end ${scaffolds} ${prefix} -t ${task.cpus} -d checkv-db*" 
         echo "\${cmd}" >>  ${software}
@@ -546,8 +546,9 @@ process gtdb {
    
     """
 
+    chmod a+x /ProkGenomics_scripts/db_gtdb.sh
+    download-db.sh || /ProkGenomics_scripts/db_gtdb.sh
 
-    download-db.sh || ./ProkGenomics_scripts/db_gtdb.sh
     cmd="gtdbtk classify_wf --genome_dir ${chromosome_path} --prefix gtdbtk.${prefix} --out_dir ${prefix}_gtdbtk_classification --cpus ${task.cpus} --skip_ani_screen"
     
     \${cmd}

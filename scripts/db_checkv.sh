@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 rm -r checkv-db*
 
 while true;do
