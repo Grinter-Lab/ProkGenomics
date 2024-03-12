@@ -60,12 +60,16 @@ params.logo="$baseDir/scripts/Logo.svg"
 params.github="https://github.com/Grinter-Lab/ProkGenomics"
 params.default_empty_path="$baseDir/scripts/NO_APPLY/"
 params.Rrender="$baseDir/scripts/report_render.R"
+params.classification="TRUE"
 /*************************************************************************************************************************************************************
  * Channels
  read parameters in the command line 
  ************************************************************************************************************************************************************/
 
+	Channel.value( params.classification )
+		.set{ run_classification}
 
+	download_done = 'x'
 
 	Channel.value( params.threads )
 		.set{ threads_ch }
@@ -323,6 +327,7 @@ include { checkv } from params.modules
 include { plasclass } from params.modules
 
 // Taxonomy classification
+include { gtdb_download } from params.modules
 include { gtdb } from params.modules
 
 // split assembly
@@ -469,15 +474,26 @@ workflow comparative_genomics_workflow{
 		stats_path=get_coverage.out.stats_path
 }
 
+workflow gtdb_download_workflow{
+	main:
+		gtdb_download(run_classification)
+	emit:
+		gtdbtk_db_path=gtdb_download.out.gtdbtk_db_path
+		gtdbtk_download_val=gtdb_download.out.gtdbtk_download
+}
+
 workflow gtdb_workflow{
 	take:
 		contigs
+		gtdbtk_db_path
+		gtdbtk_download_val
 	main:
-		gtdb(contigs)
+		gtdb(contigs,gtdbtk_db_path,gtdbtk_download_val)
 	emit:
 		gtdb_path= gtdb.out.gtdbtk_summary
-}
 
+
+}
 
 
 
@@ -548,6 +564,8 @@ workflow{
 	main:
 
 	if (params.assembly == null){
+		gtdb_download_workflow()
+
 		if (params.assembly_type=='short'){
 			shortreads_QC_workflow()
 			shortreads_trim_workflow()
@@ -570,8 +588,7 @@ workflow{
 			prokka_plasmids_workflow(split_assembly_workflow.out.plasmid_path,plasmid)
 			prokka_scaffolds_workflow(shortreads_assembly_workflow.out.scaffolds,denovoassembly)
 			pharokka_workflow(split_assembly_workflow.out.phage_path)
-			gtdb_workflow(split_assembly_workflow.out.chromosome_path)
-
+			gtdb_workflow(split_assembly_workflow.out.chromosome_path,gtdb_download_workflow.out.gtdbtk_db_path,gtdb_download_workflow.out.gtdbtk_download_val)
 
 			fastqc_html_output = shortreads_QC_workflow.out.fastqc_html.ifEmpty{ myDefaultInputFile_QC_reads }
 			fastqc_trim_html_output = shortreads_trim_workflow.out.fastqc_trim_html.ifEmpty{myDefaultInputFile_QC_trimmed_reads }
@@ -612,7 +629,7 @@ workflow{
 			prokka_plasmids_workflow(split_assembly_workflow.out.plasmid_path,plasmid)
 			prokka_scaffolds_workflow(ch_in_assembly,denovoassembly)
 			pharokka_workflow(split_assembly_workflow.out.phage_path)
-			gtdb_workflow(split_assembly_workflow.out.chromosome_path)
+			gtdb_workflow(split_assembly_workflow.out.chromosome_path,gtdb_download_workflow.out.gtdbtk_db_path,gtdb_download_workflow.out.gtdbtk_download_val)
 
 			chromosome_path_output = split_assembly_workflow.out.chromosome_path.ifEmpty{ myDefaultInputFile_chr_extraction }
 			plasmid_path_output = split_assembly_workflow.out.plasmid_path.ifEmpty{myDefaultInputFile_plasmid_extraction }

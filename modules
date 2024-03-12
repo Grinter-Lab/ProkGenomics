@@ -506,6 +506,52 @@ process snippy {
 * GTDBTK
 **************************************************************************************************************************************************************/
 
+process gtdb_download {
+
+    label 'mount_local_scripts'
+    
+     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+    
+	publishDir "${params.outdir}/GTDB",
+        mode: params.intermedia_files 
+
+    conda (params.enable_conda ? "bioconda::gtdbtk" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/gtdbtk%3A2.3.2--pyhdfd78af_0"
+    } else {
+        container "quay.io/biocontainers/gtdbtk"
+    }
+
+    input:
+        val (download_done)
+    
+    output:
+        tuple val(prefix), path ("rele*"),  emit: gtdbtk_db_path, optional: true
+        val(download_done),  emit: gtdbtk_download
+
+    when:
+    params.classification
+
+    script:   
+    """
+    spacedisk=`df -k ./ | tail -1 | awk '{print \$4}`
+    db_size=1048576 
+
+    if [ \$spacedisk -lt \$db_size ]; 
+        then 
+            ${download_done}='no space for gtdb database! will skip classification step\n';
+        else
+            chmod a+x /ProkGenomics_scripts/db_gtdb.sh
+            /ProkGenomics_scripts/db_gtdb.sh
+            ${download_done}='done';
+        fi
+    
+    """
+
+}
+
+
 
 process gtdb {
 
@@ -527,9 +573,11 @@ process gtdb {
 
     input:
         tuple val(prefix), path (chromosome_path)
+        tuple val(db_prefix), path (db_downloaded)
+        val (db_diskspace)
 
     output:
-        tuple val(prefix), path("gtdbtk.${prefix}.*.summary.tsv")         , emit: gtdbtk_summary
+        tuple val(prefix), path("gtdbtk.${prefix}.*.summary.tsv")         , emit: gtdbtk_summary, optional: true
         tuple val(prefix), path("gtdbtk.${prefix}.*.classify.tree.gz")    , emit: gtdbtk_tree, optional: true
         tuple val(prefix), path("gtdbtk.${prefix}.*.markers_summary.tsv") , emit: gtdbtk_markers, optional: true
         tuple val(prefix), path("gtdbtk.${prefix}.*.msa.fasta.gz")        , emit: gtdbtk_msa, optional: true
@@ -546,18 +594,16 @@ process gtdb {
    
     """
 
-    chmod a+x /ProkGenomics_scripts/db_gtdb.sh
-    download-db.sh || /ProkGenomics_scripts/db_gtdb.sh
-
-    cmd="gtdbtk classify_wf --genome_dir ${chromosome_path} --prefix gtdbtk.${prefix} --out_dir ${prefix}_gtdbtk_classification --cpus ${task.cpus} --skip_ani_screen"
-    
-    \${cmd}
-  
-    echo "version" >>  ${software} 
-    gtdbtk --version| sed 's/Copyright 2017 Pierre-Alain Chaumeil, Aaron Mussig and Donovan Parks//' >> ${software}
-    echo "version" >>  ${software}
-
-    echo "\${cmd}" >>  ${software} 
+    if [ ${db_diskspace} == "done" ]; 
+    then
+        GTDBTK_DATA_PATH=${db_downloaded}
+        cmd="gtdbtk classify_wf --genome_dir ${chromosome_path} --prefix gtdbtk.${prefix} --out_dir ${prefix}_gtdbtk_classification --cpus ${task.cpus} --skip_ani_screen"
+        \${cmd}
+        echo "version" >>  ${software} 
+        gtdbtk --version| sed 's/Copyright 2017 Pierre-Alain Chaumeil, Aaron Mussig and Donovan Parks//' >> ${software}
+        echo "version" >>  ${software}
+        echo "\${cmd}" >>  ${software} 
+    fi
     """
 
 }
