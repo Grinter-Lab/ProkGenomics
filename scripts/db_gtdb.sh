@@ -3,4 +3,4 @@ while true; do
 done
 
 tar -xvzf gtdbtk_r214_data.tar.gz
-GTDBTK_DATA_PATH="./release214"
+

@@ -73,6 +73,7 @@ rmarkdown::render( input  = report_template,
                                 gtdb_path=parameters$gtdb_path,
                                 minimap2_path=parameters$minimap2_path,
                                 snippy_path=parameters$snippy_path,
+                                stats_path=parameters$stats_path,
                                 fastqc_version= fastqc_version,
                                 trimmomatic_version=trimmomatic_version,
                                 unicycler_version=unicycler_version,
@@ -83,9 +84,7 @@ rmarkdown::render( input  = report_template,
                                 checkv_version=checkv_version,
                                 checkm_version=checkm_version,
                                 gtdb_version=gtdb_version,
-                                minimap2_version=minimap2_version,
-                                stats_path=stats_path
-
+                                minimap2_version=minimap2_version
                                 ),
                         output_dir = Sys.getenv("PWD"),
                         output_file = file_name

@@ -510,8 +510,8 @@ process gtdb_download {
 
     label 'mount_local_scripts'
     
-     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    maxRetries 3
+     //errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    //maxRetries 3
     
 	publishDir "${params.outdir}/GTDB",
         mode: params.intermedia_files 
@@ -522,31 +522,34 @@ process gtdb_download {
     } else {
         container "quay.io/biocontainers/gtdbtk"
     }
-
-    input:
-        val (download_done)
     
     output:
-        tuple val(prefix), path ("rele*"),  emit: gtdbtk_db_path, optional: true
-        val(download_done),  emit: gtdbtk_download
-
-    when:
-    params.classification
+        path ("rele*"),  emit: gtdbtk_db_path, optional: true
+        env (db_diskspace), emit: db_diskspace
 
     script:   
+    db_existing="${params.db_gtdb_path}"
     """
-    spacedisk=`df -k ./ | tail -1 | awk '{print \$4}`
-    db_size=1048576 
+    spacedisk=`df -k ./ | awk '\$NF == "/" { if(\$5 == "/") print \$3; else print \$4 }'`
+    db_size=1048576
+    db_existing="${db_existing}"
 
-    if [ \$spacedisk -lt \$db_size ]; 
-        then 
-            ${download_done}='no space for gtdb database! will skip classification step\n';
-        else
-            chmod a+x /ProkGenomics_scripts/db_gtdb.sh
-            /ProkGenomics_scripts/db_gtdb.sh
-            ${download_done}='done';
-        fi
     
+    if [ "\$spacedisk" -lt "\$db_size" ]
+     then 
+            db_diskspace='Skipped! No space for gtdb database!'
+     elif [ ! -f ${db_existing} ]
+     then
+        chmod a+x /ProkGenomics_scripts/db_gtdb.sh
+        download-db.sh || /ProkGenomics_scripts/db_gtdb.sh
+        db_diskspace='done'
+      else
+        ln -s ${db_existing} 
+        db_diskspace='done'
+     
+      fi
+    
+       
     """
 
 }
@@ -573,11 +576,11 @@ process gtdb {
 
     input:
         tuple val(prefix), path (chromosome_path)
-        tuple val(db_prefix), path (db_downloaded)
-        val (db_diskspace)
+        tuple val(db_prefix), path ( gtdbtk_db_path)
+        env (db_diskspace)
 
     output:
-        tuple val(prefix), path("gtdbtk.${prefix}.*.summary.tsv")         , emit: gtdbtk_summary, optional: true
+        tuple val(prefix), path("gtdbtk.${prefix}.*.summary.tsv")         , emit: gtdbtk_summary,optional: true
         tuple val(prefix), path("gtdbtk.${prefix}.*.classify.tree.gz")    , emit: gtdbtk_tree, optional: true
         tuple val(prefix), path("gtdbtk.${prefix}.*.markers_summary.tsv") , emit: gtdbtk_markers, optional: true
         tuple val(prefix), path("gtdbtk.${prefix}.*.msa.fasta.gz")        , emit: gtdbtk_msa, optional: true
@@ -587,23 +590,24 @@ process gtdb {
         tuple val(prefix), path("gtdbtk.${prefix}.warnings.log")          , emit: gtdbtk_warnings,optional: true
         path  "*details.txt" , emit: version,optional: true
         path ".*.log" , emit: gtdbtk_log,optional: true
-
+   
     script:
     task.cpus="${params.threads}"
     software = "${params.software_versions}"
    
     """
 
-    if [ ${db_diskspace} == "done" ]; 
-    then
-        GTDBTK_DATA_PATH=${db_downloaded}
-        cmd="gtdbtk classify_wf --genome_dir ${chromosome_path} --prefix gtdbtk.${prefix} --out_dir ${prefix}_gtdbtk_classification --cpus ${task.cpus} --skip_ani_screen"
-        \${cmd}
-        echo "version" >>  ${software} 
-        gtdbtk --version| sed 's/Copyright 2017 Pierre-Alain Chaumeil, Aaron Mussig and Donovan Parks//' >> ${software}
-        echo "version" >>  ${software}
-        echo "\${cmd}" >>  ${software} 
-    fi
+    if [ ${db_diskspace} = "done" ]; 
+        then
+            GTDBTK_DATA_PATH=${gtdbtk_db_path}
+            cmd="gtdbtk classify_wf --genome_dir ${chromosome_path} --prefix gtdbtk.${prefix} --out_dir ${prefix}_gtdbtk_classification --cpus ${task.cpus} --skip_ani_screen"
+            \${cmd}
+            echo "version" >>  ${software} 
+            gtdbtk --version| sed 's/Copyright 2017 Pierre-Alain Chaumeil, Aaron Mussig and Donovan Parks//' >> ${software}
+            echo "version" >>  ${software}
+            echo "\${cmd}" >>  ${software} 
+        else
+
     """
 
 }
@@ -911,10 +915,6 @@ process report{
         Rrender="${params.Rrender}"
 
         """  
-        echo "again"
-        echo "again"
-        echo "again"
-        echo "again"
 
 
         echo "Run Rscript in one line in the container"  
