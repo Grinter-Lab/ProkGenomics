@@ -48,7 +48,8 @@ params.longreads = null
 params.threads = (16)
 params.outdir = "$PWD/${params.sample_name}_results"
 params.publish_dir_mode = 'copy'
-params.intermedia_files = 'copy'
+params.publish_intermedia_files = 'copy'
+params.publish_db_folder="copy"
 params.modules = "$baseDir/modules"
 params.reference = null
 params.software_versions="software_details.txt"
@@ -61,7 +62,8 @@ params.github="https://github.com/Grinter-Lab/ProkGenomics"
 params.default_empty_path="$baseDir/scripts/NO_APPLY/"
 params.Rrender="$baseDir/scripts/report_render.R"
 params.run_classification="TRUE"
-params.db_gtdb_path="$baseDir/db_gtdb/release214"
+params.db_gtdb_path="$baseDir/db_gtdb/release214/"
+
 /*************************************************************************************************************************************************************
  * Channels
  read parameters in the command line 
@@ -482,16 +484,16 @@ workflow gtdb_download_workflow{
 		gtdb_download()
 	emit:
 		gtdbtk_db_path=gtdb_download.out.gtdbtk_db_path
-		db_diskspace_val=gtdb_download.out.db_diskspace
+		db_diskspace_command=gtdb_download.out.db_diskspace_command
 }
 
 workflow gtdb_workflow{
 	take:
 		contigs
 		gtdbtk_db_path
-		db_diskspace_val
+		db_diskspace_command
 	main:
-		gtdb(contigs,gtdbtk_db_path,db_diskspace_val)
+		gtdb(contigs,gtdbtk_db_path,db_diskspace_command)
 	emit:
 		gtdb_path= gtdb.out.gtdbtk_summary
 
@@ -593,7 +595,7 @@ workflow{
 			pharokka_workflow(split_assembly_workflow.out.phage_path)
 
 			if (params.run_classification ){
-				gtdb_workflow(split_assembly_workflow.out.chromosome_path,gtdb_download_workflow.out.gtdbtk_db_path,gtdb_download_workflow.out.db_diskspace_val)
+				gtdb_workflow(split_assembly_workflow.out.chromosome_path,gtdb_download_workflow.out.gtdbtk_db_path,gtdb_download_workflow.out.db_diskspace_command)
 				gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
 				}else{ gtdb_output = myDefaultInputFile_chr_classification }
 
@@ -639,7 +641,7 @@ workflow{
 
 
 			if (params.run_classification ){
-				gtdb_workflow(split_assembly_workflow.out.chromosome_path,gtdb_download_workflow.out.gtdbtk_db_path,gtdb_download_workflow.out.db_diskspace_val)
+				gtdb_workflow(split_assembly_workflow.out.chromosome_path,gtdb_download_workflow.out.gtdbtk_db_path,gtdb_download_workflow.out.db_diskspace_command)
 				gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
 				}else{ gtdb_output = myDefaultInputFile_chr_classification }
 		
@@ -685,7 +687,8 @@ workflow{
 
 
 workflow.onComplete { 
-	println ( workflow.success ? "\n \nDone! see the report in ${params.outdir} for more details \n" : "Oops .. something went wrong" )
+	println ( workflow.success ? "\nDone! see the report in ${params.outdir} for more details \n" : "Oops .. something went wrong" )
 }
  
-//Taxonomical classifications ${gtdb_download_workflow.out.db_diskspace_val}
+
+//\n//Taxonomical classifications ${gtdb_download_workflow.out.db_diskspace_val} 

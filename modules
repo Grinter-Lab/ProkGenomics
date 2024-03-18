@@ -15,7 +15,7 @@ process fastqc {
     maxRetries 3
 
 	publishDir "${params.outdir}/fastqc",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 	
 	//use container
     conda (params.enable_conda ? "bioconda::fastqc" : null)
@@ -60,7 +60,7 @@ process trimmomatic {
     maxRetries 3
 
 	publishDir "${params.outdir}/trimmomatic",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
 	//use container
     conda (params.enable_conda ? "bioconda::trimmomatic" : null)
@@ -120,7 +120,7 @@ process unicycler_short {
     maxRetries 3
 
 	publishDir "${params.outdir}/unicycler",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
 	//use container
     conda (params.enable_conda ? "python=3.7 bioconda::unicycler" : null)
@@ -166,7 +166,7 @@ process busco {
 
 
 	publishDir "${params.outdir}/busco",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
 	//use container
     conda (params.enable_conda ? "bioconda::busco" : null)
@@ -207,7 +207,7 @@ process checkm {
     maxRetries 3
 
 	publishDir "${params.outdir}/checkm",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::checkm-genome" : null)
@@ -254,7 +254,7 @@ process checkv {
     maxRetries 3
 
 	publishDir "${params.outdir}/checkv",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
 //use container
     conda (params.enable_conda ? "python=3.7 bioconda::checkv" : null)
@@ -310,7 +310,7 @@ process plasclass {
     //errorStrategy 'ignore'
 
 	publishDir "${params.outdir}/plasclass",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
     conda (params.enable_conda ? "python=3.7 bioconda::plasclass": null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -356,7 +356,7 @@ process prokka {
     maxRetries 3
 
 	publishDir "${params.outdir}/prokka",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::prokka" : null)
@@ -404,7 +404,7 @@ process pharokka {
     maxRetries 3
 
 	publishDir "${params.outdir}/pharokka",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::pharokka" : null)
@@ -462,7 +462,7 @@ process snippy {
     maxRetries 3
 
 	publishDir "${params.outdir}/snippy",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::snippy" : null)
@@ -513,8 +513,8 @@ process gtdb_download {
      //errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
     //maxRetries 3
     
-	publishDir "${params.outdir}/GTDB",
-        mode: params.intermedia_files 
+	publishDir "${baseDir}/db_gtdb",
+        mode: params.publish_db_folder
 
     conda (params.enable_conda ? "bioconda::gtdbtk" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -526,30 +526,35 @@ process gtdb_download {
     output:
         path ("rele*"),  emit: gtdbtk_db_path, optional: true
         env (db_diskspace), emit: db_diskspace
+        path (".command.env"), emit: db_diskspace_command
 
     script:   
     db_existing="${params.db_gtdb_path}"
     """
+    echo "again"
     spacedisk=`df -k ./ | awk '\$NF == "/" { if(\$5 == "/") print \$3; else print \$4 }'`
     db_size=1048576
     db_existing="${db_existing}"
 
     
-    if [ "\$spacedisk" -lt "\$db_size" ]
-     then 
-            db_diskspace='Skipped! No space for gtdb database!'
-     elif [ ! -f ${db_existing} ]
-     then
-        chmod a+x /ProkGenomics_scripts/db_gtdb.sh
-        download-db.sh || /ProkGenomics_scripts/db_gtdb.sh
-        db_diskspace='done'
-      else
+    if [ ! -d ${db_existing} ]
+     then  
+      if [ "\$spacedisk" -lt "\$db_size"  ]
+        then
+         echo "first condition"
+            db_diskspace="Skipped! No space for gtdb database!"
+        else
+            echo "second condition"
+            chmod a+x /ProkGenomics_scripts/db_gtdb.sh
+            download-db.sh || /ProkGenomics_scripts/db_gtdb.sh
+            db_diskspace="done"
+        fi
+     else
+       echo "third condition"
         ln -s ${db_existing} 
-        db_diskspace='done'
-     
-      fi
-    
-       
+        db_diskspace="done" 
+    fi
+
     """
 
 }
@@ -559,12 +564,10 @@ process gtdb_download {
 process gtdb {
 
     label 'mount_local_scripts'
-    
-     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    maxRetries 3
+     errorStrategy 'ignore'
     
 	publishDir "${params.outdir}/GTDB",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
     conda (params.enable_conda ? "bioconda::gtdbtk" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -576,8 +579,8 @@ process gtdb {
 
     input:
         tuple val(prefix), path (chromosome_path)
-        tuple val(db_prefix), path ( gtdbtk_db_path)
-        env (db_diskspace)
+        path ( gtdbtk_db_path)
+        path (db_diskspace_command)
 
     output:
         tuple val(prefix), path("gtdbtk.${prefix}.*.summary.tsv")         , emit: gtdbtk_summary,optional: true
@@ -596,17 +599,25 @@ process gtdb {
     software = "${params.software_versions}"
    
     """
-
-    if [ ${db_diskspace} = "done" ]; 
+    echo "again"
+    mkdir chromosome
+    fullpath=`readlink -f ${chromosome_path}`
+    ln -s \$fullpath chromosome/${chromosome_path}
+    source ${db_diskspace_command}
+    echo \$db_diskspace
+    if [ \$db_diskspace = "done" ]; 
         then
-            GTDBTK_DATA_PATH=${gtdbtk_db_path}
-            cmd="gtdbtk classify_wf --genome_dir ${chromosome_path} --prefix gtdbtk.${prefix} --out_dir ${prefix}_gtdbtk_classification --cpus ${task.cpus} --skip_ani_screen"
-            \${cmd}
+            export GTDBTK_DATA_PATH="${gtdbtk_db_path}"
+            echo \$GTDBTK_DATA_PATH
+            echo \$db_diskspace
+            cmd="gtdbtk classify_wf --genome_dir chromosome/ --prefix gtdbtk.${prefix} --out_dir ${prefix}_gtdbtk_classification --cpus ${task.cpus} --skip_ani_screen --extension fasta --pplacer_cpus 1"
+
             echo "version" >>  ${software} 
             gtdbtk --version| sed 's/Copyright 2017 Pierre-Alain Chaumeil, Aaron Mussig and Donovan Parks//' >> ${software}
             echo "version" >>  ${software}
             echo "\${cmd}" >>  ${software} 
-        else
+             \${cmd}
+        fi
 
     """
 
@@ -619,7 +630,7 @@ process gtdb {
         
 process split_assembly {
 	publishDir "${params.outdir}/splitting_assemblies",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
   conda (params.enable_conda ? "bioconda::samtools" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -681,7 +692,7 @@ process prodigal {
     maxRetries 3
 
   	publishDir "${params.outdir}/prodigal",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
   conda (params.enable_conda ? "bioconda::prodigal" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -734,7 +745,7 @@ process reference_format {
     maxRetries 3
 
   	publishDir "${params.outdir}/minimap2",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
   conda (params.enable_conda ? "anaconda::biopython" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -779,7 +790,7 @@ process minimap2 {
     maxRetries 3
 
 	publishDir "${params.outdir}/minimap2",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::minimap2" : null)
@@ -820,7 +831,7 @@ process minimap2 {
 
 process get_coverage {
 	publishDir "${params.outdir}/minimap2",
-        mode: params.intermedia_files 
+        mode: params.publish_intermedia_files 
 
   conda (params.enable_conda ? "bioconda::samtools" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -915,7 +926,7 @@ process report{
         Rrender="${params.Rrender}"
 
         """  
-
+        echo "again"
 
         echo "Run Rscript in one line in the container"  
         Rscript /ProkGenomics_scripts/report_render.R  "/ProkGenomics_scripts/report.Rmd"\\
@@ -964,7 +975,7 @@ process report{
 
     script:
     """
-    rm -rf /path/of/the/work directory/work
+    rm -rf $PWD/work/*
     rm -rf /path/of/the/Hidden Log files/.nextflow*
     """
 }*/

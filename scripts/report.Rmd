@@ -124,7 +124,6 @@ cat( "  - **Annotations** ", params$prokka_denovo_path,"   \n")
 ```{r results='asis'}
 
 cat( "  - **fasta:** ",  params$chromosome_path,"   \n")
-cat( "  - **QC:** ", params$novoassembly_path_QC,"   \n")
 cat( "  - **Annotations** ", params$prokka_chr_path,"   \n")
 cat( "  - **Classification** ", params$gtdb_path,"   \n")
 ```
@@ -134,7 +133,6 @@ cat( "  - **Classification** ", params$gtdb_path,"   \n")
 ```{r results='asis'}
 
 cat( "  - **fasta:** ",  params$plasmid_path,"   \n")
-cat( "  - **QC:** ", params$plasmid_path_QC,"   \n")
 cat( "  - **Annotations** ", params$prokka_plasmid_path,"   \n")
 ```
 
@@ -143,7 +141,6 @@ cat( "  - **Annotations** ", params$prokka_plasmid_path,"   \n")
 ```{r results='asis'}
 
 cat( "  - **fasta:** ",  params$phage_path,"   \n")
-cat( "  - **QC:** ", params$phage_path_QC,"   \n")
 cat( "  - **Annotations** ", params$pharokka_path,"   \n")
 ```
 
