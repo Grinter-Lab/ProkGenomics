@@ -246,6 +246,41 @@ process checkm {
 * checkV
 **************************************************************************************************************************************************************/
 
+process db_checkv_download {
+    label 'mount_local_scripts'
+    
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+
+	storeDir "${baseDir}/DB/db_checkv"
+
+	//publishDir "${params.outdir}/DB/db_checkv",
+      //  mode: params.publish_intermedia_files 
+
+//use container
+    conda (params.enable_conda ? "python=3.7 bioconda::checkv" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/checkv%3A1.0.1--pyhdfd78af_0"
+    } else {
+        container "quay.io/biocontainers/checkv"
+    }
+         
+    output:
+        path ("checkv-db*"), emit: checkvdb
+
+    script:
+        task.cpus="${params.threads}"
+        software="${params.software_versions}"
+        """
+        chmod a+x /ProkGenomics_scripts/db_checkv.sh
+        checkv download_database ./ || /ProkGenomics_scripts/db_checkv.sh
+ 
+        """
+}
+
+
+
+
 
 process checkv {
     label 'mount_local_scripts'
@@ -280,11 +315,9 @@ process checkv {
     script:
         task.cpus="${params.threads}"
         software="${params.software_versions}"
+        checkv_database="${baseDir}/DB/db_checkv/checkv-db*"
         """
-        chmod a+x /ProkGenomics_scripts/db_checkv.sh
-        checkv download_database ./ || /ProkGenomics_scripts/db_checkv.sh
-
-        cmd="checkv end_to_end ${scaffolds} ${prefix} -t ${task.cpus} -d checkv-db*" 
+        cmd="checkv end_to_end ${scaffolds} ${prefix} -t ${task.cpus} -d ${checkv_database}" 
         echo "\${cmd}" >>  ${software}
         
         \${cmd}
@@ -397,6 +430,40 @@ process prokka {
 **************************************************************************************************************************************************************/
 
 
+process db_pharokka_download {
+       label 'mount_local_scripts'
+
+     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+
+	storeDir "${baseDir}/DB/db_pharokka"
+
+//use container
+    conda (params.enable_conda ? "bioconda::pharokka" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/pharokka%3A1.5.1--pyhdfd78af_0"
+    } else {
+        container "quay.io/biocontainers/pharokka"
+    }
+
+
+    output:
+        path("pharokka_databases"), emit: pharokkadb
+
+    script:
+        task.cpus="${params.threads}"
+        software = "${params.software_versions}"
+        """
+
+        chmod a+x /ProkGenomics_scripts/db_pharokka.sh
+        install_databases.py -o pharokka_databases || /ProkGenomics_scripts/db_pharokka.sh
+       
+        """
+
+}
+
+
+
 process pharokka {
        label 'mount_local_scripts'
 
@@ -425,13 +492,10 @@ process pharokka {
     script:
         task.cpus="${params.threads}"
         software = "${params.software_versions}"
+        pharokka_databases = "${baseDir}/DB/db_pharokka/pharokka_databases"
         """
-
-        chmod a+x /ProkGenomics_scripts/db_pharokka.sh
-        install_databases.py -o pharokka_databases || /ProkGenomics_scripts/db_pharokka.sh
-       
-        cmd="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus} -f"
-        cmd_meta="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d pharokka_databases -t ${task.cpus} -meta -f"
+        cmd="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d ${pharokka_databases} -t ${task.cpus} -f"
+        cmd_meta="pharokka.py -i ${contigs_phage} -o ${prefix}_phage_pharokka_annotation -d ${pharokka_databases} -t ${task.cpus} -meta -f"
 
         checkcontignum=` grep ">" ${contigs_phage} | wc -l `
 
@@ -506,15 +570,15 @@ process snippy {
 * GTDBTK
 **************************************************************************************************************************************************************/
 
-process gtdb_download {
+process db_gtdb_download {
 
     label 'mount_local_scripts'
     
      //errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
     //maxRetries 3
-    
-	publishDir "${baseDir}/db_gtdb",
-        mode: params.publish_db_folder
+    storeDir "${baseDir}/DB/db_gtdb"
+	//publishDir "${baseDir}/db_gtdb",
+      //  mode: params.publish_db_folder
 
     conda (params.enable_conda ? "bioconda::gtdbtk" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -524,14 +588,13 @@ process gtdb_download {
     }
     
     output:
-        path ("rele*"),  emit: gtdbtk_db_path, optional: true
+        path ("rele*"),  emit: gtdbtk_db_path
         env (db_diskspace), emit: db_diskspace
         path (".command.env"), emit: db_diskspace_command
 
     script:   
     db_existing="${params.db_gtdb_path}"
     """
-    echo "again"
     spacedisk=`df -k ./ | awk '\$NF == "/" { if(\$5 == "/") print \$3; else print \$4 }'`
     db_size=1048576
     db_existing="${db_existing}"
@@ -551,7 +614,7 @@ process gtdb_download {
         fi
      else
        echo "third condition"
-        ln -s ${db_existing} 
+       # ln -s ${db_existing} 
         db_diskspace="done" 
     fi
 
@@ -583,7 +646,7 @@ process gtdb {
         path (db_diskspace_command)
 
     output:
-        tuple val(prefix), path("gtdbtk.${prefix}.*.summary.tsv")         , emit: gtdbtk_summary,optional: true
+        tuple val(prefix), path("gtdbtk.${prefix}.*.summary.tsv")         , emit: gtdbtk_summary 
         tuple val(prefix), path("gtdbtk.${prefix}.*.classify.tree.gz")    , emit: gtdbtk_tree, optional: true
         tuple val(prefix), path("gtdbtk.${prefix}.*.markers_summary.tsv") , emit: gtdbtk_markers, optional: true
         tuple val(prefix), path("gtdbtk.${prefix}.*.msa.fasta.gz")        , emit: gtdbtk_msa, optional: true
@@ -617,7 +680,12 @@ process gtdb {
             echo "version" >>  ${software}
             echo "\${cmd}" >>  ${software} 
              \${cmd}
-        fi
+        else
+            echo "classification failed. Need more memory" 
+    fi
+    
+
+     
 
     """
 
@@ -925,8 +993,7 @@ process report{
         report_template="${params.report_template}"
         Rrender="${params.Rrender}"
 
-        """  
-        echo "again"
+        """          
 
         echo "Run Rscript in one line in the container"  
         Rscript /ProkGenomics_scripts/report_render.R  "/ProkGenomics_scripts/report.Rmd"\\

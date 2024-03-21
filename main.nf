@@ -62,7 +62,10 @@ params.github="https://github.com/Grinter-Lab/ProkGenomics"
 params.default_empty_path="$baseDir/scripts/NO_APPLY/"
 params.Rrender="$baseDir/scripts/report_render.R"
 params.run_classification="TRUE"
-params.db_gtdb_path="$baseDir/db_gtdb/release214/"
+params.db_gtdb_path="$baseDir//DB/db_gtdb/release214/"
+
+
+
 
 /*************************************************************************************************************************************************************
  * Channels
@@ -72,7 +75,7 @@ params.db_gtdb_path="$baseDir/db_gtdb/release214/"
 	Channel.value( params.run_classification )
 		.set{ run_classification}
 
-	download_done = 'x'
+
 
 	Channel.value( params.threads )
 		.set{ threads_ch }
@@ -328,11 +331,12 @@ include { unicycler_short } from params.modules
 include { checkm } from params.modules
 
 // Assembly classification of contigs
+include { db_checkv_download } from params.modules
 include { checkv } from params.modules
 include { plasclass } from params.modules
 
 // Taxonomy classification
-include { gtdb_download } from params.modules
+include { db_gtdb_download } from params.modules
 include { gtdb } from params.modules
 
 // split assembly
@@ -340,6 +344,7 @@ include { split_assembly } from params.modules
 
 // Annotation
 include { prokka } from params.modules
+include { db_pharokka_download } from params.modules
 include { pharokka } from params.modules
 
 // Comparative Genomics
@@ -395,7 +400,11 @@ workflow assembly_qc_workflow{
 		assemblyqc_path= checkm.out.checkm_tsv
 }
 
+workflow db_checkv_download_workflow{
+	main:
+		db_checkv_download()
 
+}
 workflow extrachr_workflow{
 	take:
 		scaffolds
@@ -452,6 +461,13 @@ workflow prokka_plasmids_workflow{
 		prokka_path=prokka.out.prokka_path
 }
 
+
+workflow db_pharokka_download_workflow{
+	main:
+		db_pharokka_download()
+
+}
+
 workflow pharokka_workflow{
 	take:
 		contigs
@@ -479,12 +495,12 @@ workflow comparative_genomics_workflow{
 		stats_path=get_coverage.out.stats_path
 }
 
-workflow gtdb_download_workflow{
+workflow db_gtdb_download_workflow{
 	main:
-		gtdb_download()
+		db_gtdb_download()
 	emit:
-		gtdbtk_db_path=gtdb_download.out.gtdbtk_db_path
-		db_diskspace_command=gtdb_download.out.db_diskspace_command
+		gtdbtk_db_path=db_gtdb_download.out.gtdbtk_db_path
+		db_diskspace_command=db_gtdb_download.out.db_diskspace_command
 }
 
 workflow gtdb_workflow{
@@ -522,7 +538,6 @@ workflow report_workflow{
 		minimap2_path
 		gtdb_path
 		stats_path
-
        // assembly2gene_table
        // assembly2gene_aligments
        // assembly2gene_peptides
@@ -567,8 +582,10 @@ workflow report_workflow{
 workflow{
 
 	main:
-
-	if (params.run_classification ){gtdb_download_workflow()}
+	
+	if (params.run_classification ){db_gtdb_download_workflow()}
+	db_checkv_download_workflow()
+	db_pharokka_download_workflow()
 
 	if (params.assembly == null){
 		if (params.assembly_type=='short'){
@@ -595,7 +612,7 @@ workflow{
 			pharokka_workflow(split_assembly_workflow.out.phage_path)
 
 			if (params.run_classification ){
-				gtdb_workflow(split_assembly_workflow.out.chromosome_path,gtdb_download_workflow.out.gtdbtk_db_path,gtdb_download_workflow.out.db_diskspace_command)
+				gtdb_workflow(split_assembly_workflow.out.chromosome_path,db_gtdb_download_workflow.out.gtdbtk_db_path,db_gtdb_download_workflow.out.db_diskspace_command)
 				gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
 				}else{ gtdb_output = myDefaultInputFile_chr_classification }
 
@@ -641,8 +658,8 @@ workflow{
 
 
 			if (params.run_classification ){
-				gtdb_workflow(split_assembly_workflow.out.chromosome_path,gtdb_download_workflow.out.gtdbtk_db_path,gtdb_download_workflow.out.db_diskspace_command)
-				gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
+				gtdb_workflow(split_assembly_workflow.out.chromosome_path,db_gtdb_download_workflow.out.gtdbtk_db_path,db_gtdb_download_workflow.out.db_diskspace_command)
+				gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification}
 				}else{ gtdb_output = myDefaultInputFile_chr_classification }
 		
 			chromosome_path_output = split_assembly_workflow.out.chromosome_path.ifEmpty{ myDefaultInputFile_chr_extraction }
@@ -657,6 +674,8 @@ workflow{
 		}
 
 
+x=gtdb_output.map{}
+x.view()
 
 	report_workflow( sample_name,
 					 fastqc_html_output,
@@ -691,4 +710,4 @@ workflow.onComplete {
 }
  
 
-//\n//Taxonomical classifications ${gtdb_download_workflow.out.db_diskspace_val} 
+//\n//Taxonomical classifications ${db_gtdb_download_workflow.out.db_diskspace_val} 
