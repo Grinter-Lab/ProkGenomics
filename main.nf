@@ -49,7 +49,7 @@ params.longreads = null
 params.threads = (16)
 params.outdir = "$PWD/${params.sample_name}_results"
 params.publish_dir_mode = 'copy'
-params.publish_intermedia_files = 'copy'
+params.publish_intermediate_files  = 'copy'
 params.modules = "$baseDir/modules"
 params.reference = null
 params.software_versions="software_details.txt"
@@ -65,7 +65,7 @@ params.run_classification="TRUE"
 params.db_gtdb_path="$baseDir//DB/db_gtdb/release214/"
 params.genes_interest=null
 params.percentage=80
-params.keep_intermedia_files="TRUE"
+//params.keep_intermediate_files="TRUE"
 
 
 
@@ -77,10 +77,10 @@ params.keep_intermedia_files="TRUE"
 	Channel.value( params.run_classification )
 		.set{ run_classification}
 
-	Channel.value( params.keep_intermedia_files )
-		.set{ keep_intermedia_files}
+	Channel.value( params.keep_intermediate_files )
+		.set{ keep_intermediate_files}
 
-	if(keep_intermedia_files){ params.publish_intermedia_files='copy'}else{params.publish_intermedia_files=null}
+	//if(keep_intermediate_files){ params.keep_intermediate_files='copy'}else{params.keep_intermediate_files=null}
 
 	Channel.value( params.threads )
 		.set{ threads_ch }

@@ -15,7 +15,7 @@ process fastqc {
     maxRetries 3
 
 	publishDir "${params.outdir}/fastqc",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 	
 	//use container
     conda (params.enable_conda ? "bioconda::fastqc" : null)
@@ -60,7 +60,7 @@ process trimmomatic {
     maxRetries 3
 
 	publishDir "${params.outdir}/trimmomatic",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
 	//use container
     conda (params.enable_conda ? "bioconda::trimmomatic" : null)
@@ -120,7 +120,7 @@ process unicycler_short {
     maxRetries 3
 
 	publishDir "${params.outdir}/unicycler",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
 	//use container
     conda (params.enable_conda ? "python=3.7 bioconda::unicycler" : null)
@@ -166,7 +166,7 @@ process busco {
 
 
 	publishDir "${params.outdir}/busco",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
 	//use container
     conda (params.enable_conda ? "bioconda::busco" : null)
@@ -207,7 +207,7 @@ process checkm {
     maxRetries 3
 
 	publishDir "${params.outdir}/checkm",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::checkm-genome" : null)
@@ -255,7 +255,7 @@ process db_checkv_download {
 	storeDir "${baseDir}/DB/db_checkv"
 
 	//publishDir "${params.outdir}/DB/db_checkv",
-      //  mode: params.publish_intermedia_files 
+      //  mode: params.publish_intermediate_files 
 
 //use container
     conda (params.enable_conda ? "python=3.7 bioconda::checkv" : null)
@@ -289,7 +289,7 @@ process checkv {
     maxRetries 3
 
 	publishDir "${params.outdir}/checkv",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
 //use container
     conda (params.enable_conda ? "python=3.7 bioconda::checkv" : null)
@@ -343,7 +343,7 @@ process plasclass {
     //errorStrategy 'ignore'
 
 	publishDir "${params.outdir}/plasclass",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
     conda (params.enable_conda ? "python=3.7 bioconda::plasclass": null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -389,7 +389,7 @@ process prokka {
     maxRetries 3
 
 	publishDir "${params.outdir}/prokka",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::prokka" : null)
@@ -471,7 +471,7 @@ process pharokka {
     maxRetries 3
 
 	publishDir "${params.outdir}/pharokka",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::pharokka" : null)
@@ -526,7 +526,7 @@ process snippy {
     maxRetries 3
 
 	publishDir "${params.outdir}/snippy",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::snippy" : null)
@@ -629,7 +629,7 @@ process gtdb {
     label 'mount_local_scripts'
     
 	publishDir "${params.outdir}/GTDB",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
     conda (params.enable_conda ? "bioconda::gtdbtk" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -696,7 +696,7 @@ process gtdb {
         
 process split_assembly {
 	publishDir "${params.outdir}/splitting_assemblies",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "bioconda::samtools" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -758,7 +758,7 @@ process prodigal {
     maxRetries 3
 
   	publishDir "${params.outdir}/prodigal",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "bioconda::prodigal" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -812,7 +812,7 @@ process reference_format {
     maxRetries 3
 
   	publishDir "${params.outdir}/minimap2",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "anaconda::biopython" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -857,7 +857,7 @@ process minimap2 {
     maxRetries 3
 
 	publishDir "${params.outdir}/minimap2",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
 //use container
     conda (params.enable_conda ? "bioconda::minimap2" : null)
@@ -901,7 +901,7 @@ process get_coverage {
     maxRetries 3
 	
     publishDir "${params.outdir}/minimap2",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "bioconda::samtools" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -938,7 +938,7 @@ process qualimap {
     maxRetries 3
 
     publishDir "${params.outdir}/qualimap",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "bioconda::qualimap" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -981,7 +981,7 @@ process makeblastdb {
 
     storeDir "${params.genes_interest}"
     //publishDir "${params.outdir}/blast",
-    //    mode: params.publish_intermedia_files 
+    //    mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "bioconda::blast" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -1009,7 +1009,7 @@ process blast{
 
     
     publishDir "${params.outdir}/blast",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "bioconda::blast" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -1036,10 +1036,6 @@ process blast{
 }
 
 
-//				system("xargs samtools faidx $genes_fasta_chr < $temp_chr >$output_gene_chr");
-
-
-//my $cmd_blast_chr="blastn -query $genes_fasta_chr -db $gene_id -dust no -outfmt \"6 qseqid sseqid pident qlen slen length qstart qend sstart send mismatch gapope evalue bitscore\" -perc_identity $percentage -out $outputblast_chr";
 
 
 /*
@@ -1063,6 +1059,81 @@ process blast {
 **************************************************************************************************************************************************************/
 // 
 
+
+process Assembly2Gene{
+    label 'mount_local_scripts'
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+
+    publishDir "${params.outdir}/blast",
+        mode: params.publish_intermediate_files 
+
+  conda (params.enable_conda ? "" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://github.com/MonashBioinformaticsPlatform/containers/pkgs/container/containers%2Ffromassembly2feature"
+    } else {
+        container ""
+    }
+
+    input:
+        tuple val (prefix0), path (sequence)
+        tuple val (prefix1), path (blast_output)
+        tuple val (prefix2), path (gene_fasta)
+        tuple val (prefix3), path (gene_id)
+
+    output:
+        tuple val (prefix0),path ("${prefix0}_${prefix1}.Blast.txt"), emit: blast_output
+  
+    script:
+
+    """
+    cut -f 1 ${sequence} > ${sequence}_temp
+    xargs samtools faidx ${sequence}} < ${sequence}_temp > ${sequence}_temp_seqs
+	cat ${gene_fasta}; cat ${sequence}_temp_seqs > ${sequence}_${gene_fasta}_temp_seqs";
+	Rscript /ProkGenomics_scripts/curatingAlignments_nt.r  ${sequence}_${gene_fasta}_temp_seqs ${gene_id} ${sequence}_${gene_fasta}_alignment.fasta ${sequence}_${gene_fasta}_alignment_description
+
+    """
+}
+
+
+
+
+
+//				system("xargs samtools faidx $genes_fasta_chr < $temp_chr >$output_gene_chr");
+
+
+/*
+   # awk '/^>/ {printf(\"\\n\%s\\n\",\$0);next; } { printf(\"\%s\",\$0);}  END {printf(\"\\n\");}' < ${sequence}_temp_seqs > ${sequence}_temp_seqs.tmp";	
+
+	my $temp_chr=$output_alignments_chr."/".$gene_tag.".tmp";
+			system("cut -f 1 $outputblast_chr >$temp_chr");
+			my $output_gene_chr= $output_alignments_chr."/".$gene_tag.".fasta";
+			if( $genes_type eq 'nucl'){
+				system("xargs samtools faidx $genes_fasta_chr < $temp_chr >$output_gene_chr");
+			}elsif($genes_type eq 'prot'){
+				system("xargs samtools faidx $genes_faa_chr < $temp_chr >$output_gene_chr");
+
+
+				system($cmd_awk);
+				system("mv $output_gene_chr.tmp $output_gene_chr");
+				system("rm $temp_chr");
+				my $output_ref_chr=$output_gene_chr.".plusRef.fasta";
+				system($cmd);
+				my $out_alignment_description=$dirresults."/".$genome.".".$gene_tag.".chr.out.alignments.description";
+				open OUT, ">$out_alignment_description" or die "Cannot open $out_alignment_description for writing\n";
+				my $gene_genome_chr_out_alignment_AA_fasta=$dirresultspep."/".$gene_tag."_".$genome.".chr.AAsequence.fasta";
+				open OUT1, ">$gene_genome_chr_out_alignment_AA_fasta" or die "Cannot open $gene_genome_chr_out_alignment_AA_fasta for writing\n";
+				my $gene_genome_chr_out_alignment_nt_fasta=$dirresults."/".$gene_tag."_".$genome.".chr_alignment.fasta.tmp";
+				open OUT2, ">$gene_genome_chr_out_alignment_nt_fasta" or die "Cannot open  $gene_genome_chr_out_alignment_nt_fasta for writing\n";
+				my $rcmd=" Rscript $results_folder/scripts/curatingAlignments.r  $output_ref_chr $gene_tag $gene_genome_chr_out_alignment_nt_fasta $gene_genome_chr_out_alignment_AA_fasta $out_alignment_description --slave";
+				print "-------$rcmd-------\n\n";
+				system($rcmd);
+*/
+
+//my $cmd_blast_chr="blastn -query $genes_fasta_chr -db $gene_id -dust no -outfmt \"6 qseqid sseqid pident qlen slen length qstart qend sstart send mismatch gapope evalue bitscore\" -perc_identity $percentage -out $outputblast_chr";
+
+
+
 /**************************************************************************************************************************************************************
 * Report
 **************************************************************************************************************************************************************/
@@ -1074,7 +1145,7 @@ process report{
 
     publishDir "${params.outdir}",
         //mode: params.publish_dir_mode 
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
     //errorStrategy 'ignore'
       conda (params.enable_conda ? "r-base r-rmarkdown" : null)
@@ -1167,7 +1238,7 @@ process multiqc {
     maxRetries 3
 
     publishDir "${params.outdir}/multiqc",
-        mode: params.publish_intermedia_files 
+        mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "bioconda::multiqc" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
