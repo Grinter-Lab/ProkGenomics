@@ -23,12 +23,16 @@ parameters<- c( prefix_sample= args[3] ,
                 phage_class= args[20],
                 snippy_path= args[21],
                 minimap2_path= args[22],
-                gtdb_path= args[23],
-                stats_path=args[24])
+                stats_path=args[23],
+                gtdb_path= args[24])
+
 
 
 parameters<-as.data.frame(t(gsub(".+myDefaultInputFile.+","NO_APPLY",parameters)))
 file_name=paste0(parameters$prefix_sample,"_ProkGenomics_report.html")
+
+if (file.exists(parameters$gtdb_path)){
+    if(file.size(parameters$gtdb_path)==0){parameters$gtdb_path="NO_APPLY_PROBLEM_RUNNING_GTDB"}}
 
 cmd <- paste(commandArgs(), collapse=" ")
 cat("How R was invoked:\n");
@@ -47,7 +51,7 @@ checkv_version=try(system(paste0("if [ -s ",params_outdir,"/checkv/software_deta
 checkm_version=try(system(paste0("if [ -s ",params_outdir,"/checkm/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/checkm/software_details.txt; fi"),intern = TRUE),silent=TRUE)
 snippy_version=try(system(paste0("if [ -s ",params_outdir,"/snippy/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/snippy/software_details.txt; fi"),intern = TRUE),silent=TRUE)
 minimap2_version=try(system(paste0("if [ -s ",params_outdir,"/minimap2/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/minimap2/software_details.txt; fi"),intern = TRUE),silent=TRUE)
-gtdb_version=try(system(paste0("if [ -s ",params_outdir,"/GTDB/software_details.txt ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/GTDB/software_details.txt; fi"),intern = TRUE),silent=TRUE)
+gtdb_version=    try(system(paste0("if [ -s ",params_outdir,"/GTDB/software_details.txt     ]; then sed -n '/version/, /version/{ /version/!p }' ", params_outdir,"/GTDB/software_details.txt;     fi"),intern = TRUE),silent=TRUE)
 
 
 

@@ -627,7 +627,6 @@ process db_gtdb_download {
 process gtdb {
 
     label 'mount_local_scripts'
-     errorStrategy 'ignore'
     
 	publishDir "${params.outdir}/GTDB",
         mode: params.publish_intermedia_files 
@@ -646,23 +645,23 @@ process gtdb {
         path (db_diskspace_command)
 
     output:
-        tuple val(prefix), path("gtdbtk.${prefix}.*.summary.tsv")         , emit: gtdbtk_summary 
-        tuple val(prefix), path("gtdbtk.${prefix}.*.classify.tree.gz")    , emit: gtdbtk_tree, optional: true
-        tuple val(prefix), path("gtdbtk.${prefix}.*.markers_summary.tsv") , emit: gtdbtk_markers, optional: true
-        tuple val(prefix), path("gtdbtk.${prefix}.*.msa.fasta.gz")        , emit: gtdbtk_msa, optional: true
-        tuple val(prefix), path("gtdbtk.${prefix}.*.user_msa.fasta.gz")   , emit: gtdbtk_user_msa, optional: true
-        tuple val(prefix), path("gtdbtk.${prefix}.*.filtered.tsv")        , emit: gtdbtk_filtered, optional: true
-        tuple val(prefix), path("gtdbtk.${prefix}.failed_genomes.tsv")    , emit: gtdbtk_failed, optional: true
-        tuple val(prefix), path("gtdbtk.${prefix}.warnings.log")          , emit: gtdbtk_warnings,optional: true
-        path  "*details.txt" , emit: version,optional: true
-        path ".*.log" , emit: gtdbtk_log,optional: true
+        tuple val(prefix), path("${prefix}_gtdbtk_classification/gtdbtk.${prefix}*.summary.tsv")         , emit: gtdbtk_summary, optional: true
+        tuple val(prefix), path("${prefix}_gtdbtk_classification/gtdbtk.${prefix}*.classify.tree.gz")    , emit: gtdbtk_tree, optional: true
+        tuple val(prefix), path("${prefix}_gtdbtk_classification/gtdbtk.${prefix}*.markers_summary.tsv") , emit: gtdbtk_markers, optional: true
+        tuple val(prefix), path("${prefix}_gtdbtk_classification/gtdbtk.${prefix}*.msa.fasta.gz")        , emit: gtdbtk_msa, optional: true
+        tuple val(prefix), path("${prefix}_gtdbtk_classification/gtdbtk.${prefix}*.user_msa.fasta.gz")   , emit: gtdbtk_user_msa, optional: true
+        tuple val(prefix), path("${prefix}_gtdbtk_classification/gtdbtk.${prefix}*.filtered.tsv")        , emit: gtdbtk_filtered, optional: true
+        tuple val(prefix), path("${prefix}_gtdbtk_classification/gtdbtk.${prefix}*.failed_genomes.tsv")  , emit: gtdbtk_failed, optional: true
+        tuple val(prefix), path("${prefix}_gtdbtk_classification/gtdbtk.warnings.log")          , emit: gtdbtk_warnings, optional: true
+        path  "*details.txt" , emit: version, optional: true
+        path ".*.log" , emit: gtdbtk_log, optional: true
    
     script:
     task.cpus="${params.threads}"
     software = "${params.software_versions}"
    
     """
-    echo "again"
+    echo ""
     mkdir chromosome
     fullpath=`readlink -f ${chromosome_path}`
     ln -s \$fullpath chromosome/${chromosome_path}
@@ -673,20 +672,19 @@ process gtdb {
             export GTDBTK_DATA_PATH="${gtdbtk_db_path}"
             echo \$GTDBTK_DATA_PATH
             echo \$db_diskspace
-            cmd="gtdbtk classify_wf --genome_dir chromosome/ --prefix gtdbtk.${prefix} --out_dir ${prefix}_gtdbtk_classification --cpus ${task.cpus} --skip_ani_screen --extension fasta --pplacer_cpus 1"
+            cmd="gtdbtk classify_wf --genome_dir chromosome/ --prefix gtdbtk.${prefix} --out_dir ${prefix}_gtdbtk_classification --cpus ${task.cpus} --skip_ani_screen --extension fasta"
 
             echo "version" >>  ${software} 
             gtdbtk --version| sed 's/Copyright 2017 Pierre-Alain Chaumeil, Aaron Mussig and Donovan Parks//' >> ${software}
-            echo "version" >>  ${software}
+            echo "version\n\n" >>  ${software}
+
             echo "\${cmd}" >>  ${software} 
-             \${cmd}
+             \${cmd} || touch ${prefix}_gtdbtk_classification/gtdbtk.${prefix}.summary.tsv
+             #add --gtdbtk_pplacer_scratch
         else
-            echo "classification failed. Need more memory" 
+            echo "classification failed. Need more disk space" 
     fi
     
-
-     
-
     """
 
 }
@@ -771,12 +769,13 @@ process prodigal {
 
     input:
     tuple val(prefix), path(contigs)
+    val(seq)
 
 
     output:
-    tuple val(prefix), path("${prefix}_prodigal"), emit: gene_annotations
-    tuple val(prefix), path("${prefix}_genes.fasta"), emit: nucleotide_fasta
-    tuple val(prefix), path("${prefix}_genes.faa"), emit: amino_acid_fasta
+    tuple val(prefix), path("${prefix}_${seq}_genes.gff"), emit: gene_annotations
+    tuple val(prefix), path("${prefix}_${seq}_genes.fasta"), emit: nucleotide_fasta
+    tuple val(prefix), path("${prefix}_${seq}_genes.faa"), emit: amino_acid_fasta
     path  "*details.txt" , emit: version
     path ".*.log" , emit: prodigal_log 
 
@@ -787,7 +786,7 @@ process prodigal {
  
     """
     
-    cmd="prodigal -i ${contig}  -o ${prefix}_prodigal -a ${prefix}_genes.faa -d ${prefix}_genes.fasta -f gff -q"
+    cmd="prodigal -i ${contigs}  -o ${prefix}_${seq}_genes.gff -a ${prefix}_${seq}_genes.faa -d ${prefix}_${seq}_genes.fasta -f gff -q -p meta"
 
     \${cmd}
 
@@ -898,7 +897,10 @@ process minimap2 {
 **************************************************************************************************************************************************************/
 
 process get_coverage {
-	publishDir "${params.outdir}/minimap2",
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+	
+    publishDir "${params.outdir}/minimap2",
         mode: params.publish_intermedia_files 
 
   conda (params.enable_conda ? "bioconda::samtools" : null)
@@ -912,17 +914,54 @@ process get_coverage {
 
     output:
         tuple val (prefix), path ("${prefix}_coverage_stast.txt"), emit: stats_path
+        tuple val (prefix), path ("${prefix}_sorted.bam"), emit: sorted_path
+
 
     script:
         task.cpus="${params.threads}"
         software = "${params.software_versions}"
         
         """
-        samtools flagstat ${mapped} > ${prefix}_coverage_stast.txt
+        samtools sort  ${mapped} -o ${prefix}_sorted.bam
+        samtools flagstat ${prefix}_sorted.bam > ${prefix}_coverage_stast.txt
         
         """
 
 }
+
+/**************************************************************************************************************************************************************
+* qualimap
+**************************************************************************************************************************************************************/
+
+process qualimap {
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+
+    publishDir "${params.outdir}/qualimap",
+        mode: params.publish_intermedia_files 
+
+  conda (params.enable_conda ? "bioconda::qualimap" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/qualimap%3A2.3--hdfd78af_0"
+    } else {
+        container "quay.io/biocontainers/qualimap"
+    }
+
+    input:
+        tuple val(prefix), path(mapped)
+
+    output:
+        tuple val (prefix), path ("${prefix}_qualimap_results"), emit: qualimap_results
+
+    script:
+        task.cpus="${params.threads}"
+        software = "${params.software_versions}"
+    
+    """ 
+    qualimap bamqc -bam ${mapped} -outdir ${prefix}_qualimap_results
+    """ 
+}
+
 
 /**************************************************************************************************************************************************************
 * clinker
@@ -930,6 +969,94 @@ process get_coverage {
 // https://depot.galaxyproject.org/singularity/clinker%3A1.33--hdfd78af_0
 // if reference genome is gbk then runs clinker
 
+
+/**************************************************************************************************************************************************************
+* blast database
+**************************************************************************************************************************************************************/
+// 
+
+process makeblastdb {
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+
+    storeDir "${params.genes_interest}"
+    //publishDir "${params.outdir}/blast",
+    //    mode: params.publish_intermedia_files 
+
+  conda (params.enable_conda ? "bioconda::blast" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/blast%3A2.9.0--pl526he19e7b1_7"
+    } else {
+        container "quay.io/biocontainers/blast"
+    }
+
+    input:
+        tuple val (prefix), path (genes_fasta)
+
+    output:
+        tuple val (prefix),path ("${prefix}.*"), emit: blastDB
+  
+    script:
+    genes_type="nucl"
+    """
+    makeblastdb -dbtype ${genes_type} -in ${genes_fasta} -out ${prefix}
+    """
+}
+
+process blast{
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+
+    
+    publishDir "${params.outdir}/blast",
+        mode: params.publish_intermedia_files 
+
+  conda (params.enable_conda ? "bioconda::blast" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/blast%3A2.9.0--pl526he19e7b1_7"
+    } else {
+        container "quay.io/biocontainers/blast"
+    }
+
+    input:
+        tuple val (prefix0), path (sequence)
+        tuple val (prefix1), path (gene_id)
+        val (percentage) 
+        
+
+    output:
+        tuple val (prefix0),path ("${prefix0}_${prefix1}.Blast.txt"), emit: blast_output
+  
+    script:
+
+    """
+    blastn -query ${sequence} -db ${prefix1} -dust no -outfmt "6 qseqid sseqid pident qlen slen length qstart qend sstart send mismatch gapope evalue bitscore" -perc_identity ${percentage} -out ${prefix0}_${prefix1}.Blast.txt
+
+    """
+}
+
+
+//				system("xargs samtools faidx $genes_fasta_chr < $temp_chr >$output_gene_chr");
+
+
+//my $cmd_blast_chr="blastn -query $genes_fasta_chr -db $gene_id -dust no -outfmt \"6 qseqid sseqid pident qlen slen length qstart qend sstart send mismatch gapope evalue bitscore\" -perc_identity $percentage -out $outputblast_chr";
+
+
+/*
+process blast {
+    input:
+    path 'query.fa'
+    path db
+
+    output:
+    path 'top_hits'
+
+    """
+    blastp -db $db/$db_name -query query.fa -outfmt 6 > blast_result
+    cat blast_result | head -n 10 | cut -f 2 > top_hits
+    """
+}
+*/
 
 /**************************************************************************************************************************************************************
 * Assembly2Gene
@@ -946,7 +1073,8 @@ process report{
     label 'mount_local_scripts'
 
     publishDir "${params.outdir}",
-        mode: params.publish_dir_mode 
+        //mode: params.publish_dir_mode 
+        mode: params.publish_intermedia_files 
 
     //errorStrategy 'ignore'
       conda (params.enable_conda ? "r-base r-rmarkdown" : null)
@@ -974,9 +1102,10 @@ process report{
         tuple val(prefix11), path (plasmid_class)
         tuple val(prefix12), path (phage_class)
         tuple val(prefix13), path (snippy_path)
-        tuple val(prefix15), path (minimap2_path)
-        tuple val(prefix14), path (gtdbtk_summary)
-        tuple val(prefix15), path (stats_path)
+        tuple val(prefix14), path (qualimap_path)
+        tuple val(prefix16), path (stats_path)
+        tuple val(prefix15), path (gtdbtk_summary)
+        //
 
         //tuple val(prefix), path (assembly2gene_table)
         //tuple val(prefix), path (assembly2gene_aligments)
@@ -994,7 +1123,7 @@ process report{
         Rrender="${params.Rrender}"
 
         """          
-
+        echo "again"
         echo "Run Rscript in one line in the container"  
         Rscript /ProkGenomics_scripts/report_render.R  "/ProkGenomics_scripts/report.Rmd"\\
             ${params.outdir}\\
@@ -1016,9 +1145,9 @@ process report{
             ${params.outdir}/plasclass/${plasmid_class}\\
             ${params.outdir}/checkv/${phage_class}\\
             ${params.outdir}/snippy/${snippy_path}\\
-            ${params.outdir}/minimap2/${minimap2_path}\\
-            ${params.outdir}/GTDB/${gtdbtk_summary}\\
-            ${params.outdir}/minimap2/${stats_path}
+            ${params.outdir}/qualimap/${qualimap_path}\\
+            ${params.outdir}/minimap2/${stats_path}\\
+            ${params.outdir}/GTDB/${prefix15}_gtdbtk_classification/${gtdbtk_summary}
             
                                   
         """
@@ -1029,20 +1158,52 @@ process report{
 
 
 
+/**************************************************************************************************************************************************************
+* multiqc
+**************************************************************************************************************************************************************/
+
+process multiqc {
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 3
+
+    publishDir "${params.outdir}/multiqc",
+        mode: params.publish_intermedia_files 
+
+  conda (params.enable_conda ? "bioconda::multiqc" : null)
+    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
+        container "https://depot.galaxyproject.org/singularity/multiqc%3A1.9--pyh9f0ad1d_0"
+    } else {
+        container "quay.io/biocontainers/multiqc"
+    }
+
+    input:
+        tuple val(prefix), path (folder_fastqc)
+        tuple val(prefix), path (folder_mapping)
+ 
+    output:
+        tuple val (prefix), path("multiqc_report.html"), emit: multiqc_report
+        tuple val (prefix), path("multiqc_data/"), emit: multiqc_data
+      
+    """
+    multiqc .
+    """
+}
+
+
+
+
+
 
 // check the version 
 //sed -n '/version/, /version/{ /version/!p }' software_details.txt 
 
-/*process Deleting_work_directory{
+process cleanup{
     input:
-    tuple val(name), path(read) from Variant_calling   //here I gave the input from last process.
-
-    output:
-    path CleanUp, optional: true
+    tuple val(prefix), path(report_path)  //here I gave the input from last process.
 
     script:
     """
-    rm -rf $PWD/work/*
-    rm -rf /path/of/the/Hidden Log files/.nextflow*
+    echo "rm -rf $PWD/work/*"
+    echo "rm -rf $PWD/.nextflow.log*"
     """
-}*/
+}

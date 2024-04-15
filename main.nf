@@ -13,6 +13,7 @@ nextflow run main.nf --assembly_type 'short' --sample_name '1-77321' -profile co
 # Running at bio1  
 cd /home/lper0012/tasks/rhys.grinter/pipeline
 nextflow run main.nf --assembly_type 'short' --sample_name '1-77321' -profile conda
+nextflow run main.nf --assembly_type 'short' --sample_name '1-77321' -profile singularity --reference unicycler/1-77321-LFA6246_L2/assembly.fasta -resume
 
 
 * Out line of the pipeline
@@ -49,7 +50,6 @@ params.threads = (16)
 params.outdir = "$PWD/${params.sample_name}_results"
 params.publish_dir_mode = 'copy'
 params.publish_intermedia_files = 'copy'
-params.publish_db_folder="copy"
 params.modules = "$baseDir/modules"
 params.reference = null
 params.software_versions="software_details.txt"
@@ -63,7 +63,9 @@ params.default_empty_path="$baseDir/scripts/NO_APPLY/"
 params.Rrender="$baseDir/scripts/report_render.R"
 params.run_classification="TRUE"
 params.db_gtdb_path="$baseDir//DB/db_gtdb/release214/"
-
+params.genes_interest=null
+params.percentage=80
+params.keep_intermedia_files="TRUE"
 
 
 
@@ -75,11 +77,13 @@ params.db_gtdb_path="$baseDir//DB/db_gtdb/release214/"
 	Channel.value( params.run_classification )
 		.set{ run_classification}
 
+	Channel.value( params.keep_intermedia_files )
+		.set{ keep_intermedia_files}
 
+	if(keep_intermedia_files){ params.publish_intermedia_files='copy'}else{params.publish_intermedia_files=null}
 
 	Channel.value( params.threads )
 		.set{ threads_ch }
-
 
 	Channel.value( params.sample_name)
 		.set{ sample_name}
@@ -87,8 +91,12 @@ params.db_gtdb_path="$baseDir//DB/db_gtdb/release214/"
 	Channel.value( params.db_gtdb_path)
 		.set{db_gtdb_path }
 
+	Channel.value( params.percentage )
+		.set{ percentage}
+
 	shortreads = "${params.sample_path}/${params.sample_name}*{1,2}*"
 
+	phage          ='phage'
 	plasmid        ='plasmids'
 	chromosome     ='chromosome'
 	denovoassembly ='denovoassembly'
@@ -133,6 +141,18 @@ If the assembly has been done provide assembly file
 			.set{ch_in_assembly}		
 	}
 
+/*
+if genes of interest a provided
+*/
+genes_fastas="${params.genes_interest}/*fasta"
+
+if (params.genes_interest){ 
+	Channel.fromPath( genes_fastas, checkIfExists: true )
+                      .map { it -> [it.baseName, it] }
+					  .set { ch_genes_interest }
+	}
+
+//ch_genes_interest.view()
 
 /*
 Set default channels for omitted steps
@@ -159,6 +179,8 @@ touch myDefaultInputFile_QC_trimmed_reads_reverse
 touch myDefaultInputFile_QC_trimmed_reads_unpaired_forward
 touch myDefaultInputFile_QC_trimmed_reads_unpaired_reverse
 touch myDefaultInputFile_SNV_detection
+touch myDefaultInputFile_stats
+touch myDefaultInputFile_qualimap
 */
 
 
@@ -290,6 +312,12 @@ Channel
 	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_stats}
 
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_qualimap")
+	.map { file -> tuple (file.baseName,file) }
+	.set{myDefaultInputFile_qualimap}
+
 /**************************************************************************************************************************************************************
  * Print parameters
  **************************************************************************************************************************************************************/
@@ -352,15 +380,21 @@ include { snippy } from params.modules
 include { reference_format } from params.modules
 include { minimap2 } from params.modules
 include { get_coverage } from params.modules
-
-//include { bowtie2 } from params.modules
+include { qualimap } from params.modules
 
 // Charaterization of genome
-//include {prodigal} from params.modules
+include {prodigal} from params.modules
+include {makeblastdb} from params.modules
+include {blast} from params.modules
 //include {assembly2feature} from params.modules
 
+
 //Create a final report of outputs
+include { multiqc } from params.modules
 include { report } from params.modules
+
+//Clean up
+include { cleanup} from params.modules
 
 /**************************************************************************************************************************************************************
  * workflows subroutine
@@ -489,11 +523,14 @@ workflow comparative_genomics_workflow{
 		reference_format(ch_in_reference)
 		minimap2(reference_format.out.reference_genome_ready,trimmed_reads)
 		get_coverage(minimap2.out.minimap2_path)
+		qualimap(get_coverage.out.sorted_path)
 	emit:
 		snippy_path= snippy.out.snippy_path
 		minimap2_path= minimap2.out.minimap2_path
 		stats_path=get_coverage.out.stats_path
+		qualimap_path=qualimap.out.qualimap_results
 }
+
 
 workflow db_gtdb_download_workflow{
 	main:
@@ -510,13 +547,140 @@ workflow gtdb_workflow{
 		db_diskspace_command
 	main:
 		gtdb(contigs,gtdbtk_db_path,db_diskspace_command)
+		//gtdb.out.gtdbtk_summary.view()
 	emit:
-		gtdb_path= gtdb.out.gtdbtk_summary
+		gtdb_path=gtdb.out.gtdbtk_summary
+// PoisonPill check. Channel closed. Groovy solution
 
+}
+
+workflow makeblastdb_workflow{
+	take:
+		ch_genes_interest
+	main:
+		makeblastdb(ch_genes_interest)
+	emit:
+		blastDB=makeblastdb.out.blastDB
 
 }
 
 
+workflow prodigal_chr_workflow{
+	take:
+		sequence
+		chromosome
+	main:
+		prodigal(sequence,chromosome)
+	emit:
+		prodigal_chr_path=prodigal.out.nucleotide_fasta
+
+}
+
+workflow prodigal_plasmid_workflow{
+	take:
+		sequence
+		plasmid
+	main:
+		prodigal(sequence,plasmid)
+	emit:
+		prodigal_plasmid_path=prodigal.out.nucleotide_fasta
+
+}
+
+workflow prodigal_phage_workflow{
+	take:
+		sequence
+		phage
+	main:
+		prodigal(sequence,phage)
+	emit:
+		prodigal_phage_path=prodigal.out.nucleotide_fasta
+
+}
+
+
+workflow blast_chr_workflow{
+	take:
+		sequence
+		gene_id
+		percentage
+	main:
+		blast(sequence,gene_id,percentage)
+	emit:
+		blast_chr_path=blast.out.blast_output
+
+}
+
+workflow blast_plasmid_workflow{
+	take:
+		sequence
+		gene_id
+		percentage
+	main:
+		blast(sequence,gene_id,percentage)
+	emit:
+		blast_plasmid_path=blast.out.blast_output
+
+}
+
+workflow blast_phage_workflow{
+	take:
+		sequence
+		gene_id
+		percentage
+	main:
+		blast(sequence,gene_id,percentage)
+	emit:
+		blast_phage_path=blast.out.blast_output
+
+}
+
+
+/*
+ * Defines the pipeline input parameters (with a default value for each one).
+ * Each of the following parameters can be specified as command line options.
+ 
+params.query = "$baseDir/data/sample.fa"
+params.db = "$baseDir/blast-db/pdb/tiny"
+params.out = "result.txt"
+params.chunkSize = 100
+
+db_name = file(params.db).name
+db_dir = file(params.db).parent
+
+workflow blast_workflow{
+    /*
+     * Create a channel emitting the given query fasta file(s).
+     * Split the file into chunks containing as many sequences as defined by the parameter 'chunkSize'.
+     * Finally, assign the resulting channel to the variable 'ch_fasta'
+     
+    Channel
+        .fromPath(params.query)
+        .splitFasta(by: params.chunkSize, file:true)
+        .set { ch_fasta }
+
+    /*
+     * Execute a BLAST job for each chunk emitted by the 'ch_fasta' channel
+     * and emit the resulting BLAST matches.
+     
+    ch_hits = blast(ch_fasta, db_dir)
+
+    /*
+     * Each time a file emitted by the 'blast' process, an extract job is executed,
+     * producing a file containing the matching sequences.
+     
+    ch_sequences = extract(ch_hits, db_dir)
+
+    /*
+     * Collect all the sequences files into a single file
+     * and print the resulting file contents when complete.
+     
+    ch_sequences
+        .collectFile(name: params.out)
+        .view { file -> "matching sequences:\n ${file.text}" }
+}
+
+*/
 
 workflow report_workflow{
 	take:
@@ -536,8 +700,10 @@ workflow report_workflow{
         phage_class
 		snippy_path
 		minimap2_path
-		gtdb_path
 		stats_path
+		gtdb_path
+
+		//stats_path
        // assembly2gene_table
        // assembly2gene_aligments
        // assembly2gene_peptides
@@ -559,8 +725,9 @@ workflow report_workflow{
         phage_class,
 		snippy_path,
 		minimap2_path,
-		gtdb_path,
-		stats_path
+		stats_path,
+		gtdb_path
+		//
         //assembly2gene_table,
         //assembly2gene_aligments,
         //assembly2gene_peptides
@@ -570,6 +737,25 @@ workflow report_workflow{
 		final_report=report.out.report_path
 }
 
+/*
+workflow multiqc_workflow{
+	take:
+	 folder_name
+	main:	
+	 multiqc(folder_name)
+	emit:
+		multiqc_report=multiqc.out.multiqc_report
+}
+
+*/
+
+workflow cleanup_workflow{
+	take:
+		report
+	main:
+		cleanup(report)
+
+}
 
 
 
@@ -596,10 +782,12 @@ workflow{
 										snippy_output = comparative_genomics_workflow.out.snippy_path
 										minimap2_output = comparative_genomics_workflow.out.minimap2_path
 										stats_output = comparative_genomics_workflow.out.stats_path
+										qualimap_output =comparative_genomics_workflow.out.qualimap_path
 										}else{ 
 										snippy_output = myDefaultInputFile_SNV_detection
 										minimap2_output = myDefaultInputFile_mapping
 										stats_output = myDefaultInputFile_stats
+										qualimap_output = myDefaultInputFile_qualimap
 										}
 
 		
@@ -613,8 +801,10 @@ workflow{
 
 			if (params.run_classification ){
 				gtdb_workflow(split_assembly_workflow.out.chromosome_path,db_gtdb_download_workflow.out.gtdbtk_db_path,db_gtdb_download_workflow.out.db_diskspace_command)
-				gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
+				//gtdb_output = gtdb_workflow.out.gtdb_path
 				}else{ gtdb_output = myDefaultInputFile_chr_classification }
+				gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
+
 
 			fastqc_html_output = shortreads_QC_workflow.out.fastqc_html.ifEmpty{ myDefaultInputFile_QC_reads }
 			fastqc_trim_html_output = shortreads_trim_workflow.out.fastqc_trim_html.ifEmpty{myDefaultInputFile_QC_trimmed_reads }
@@ -648,6 +838,7 @@ workflow{
 			snippy_output = myDefaultInputFile_SNV_detection
 			minimap2_output = myDefaultInputFile_mapping
 			stats_output = myDefaultInputFile_stats
+			qualimap_output = myDefaultInputFile_qualimap
 
 			extrachr_workflow(ch_in_assembly)
 			split_assembly_workflow(ch_in_assembly,extrachr_workflow.out.plasclass_tsv,extrachr_workflow.out.checkv_summary)
@@ -656,12 +847,13 @@ workflow{
 			prokka_scaffolds_workflow(ch_in_assembly,denovoassembly)
 			pharokka_workflow(split_assembly_workflow.out.phage_path)
 
-
 			if (params.run_classification ){
 				gtdb_workflow(split_assembly_workflow.out.chromosome_path,db_gtdb_download_workflow.out.gtdbtk_db_path,db_gtdb_download_workflow.out.db_diskspace_command)
-				gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification}
+				//gtdb_output = gtdb_workflow.out.gtdb_path
 				}else{ gtdb_output = myDefaultInputFile_chr_classification }
-		
+				gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
+
+
 			chromosome_path_output = split_assembly_workflow.out.chromosome_path.ifEmpty{ myDefaultInputFile_chr_extraction }
 			plasmid_path_output = split_assembly_workflow.out.plasmid_path.ifEmpty{myDefaultInputFile_plasmid_extraction }
 			phage_path_output = split_assembly_workflow.out.phage_path.ifEmpty{myDefaultInputFile_phage_extraction }
@@ -672,10 +864,19 @@ workflow{
 			plasclass_output = extrachr_workflow.out.plasclass_tsv.ifEmpty{myDefaultInputFile_plasmid_annotation }
 			checkv_output = extrachr_workflow.out.checkv_summary.ifEmpty{myDefaultInputFile_phage_classification }
 		}
+ 
+		if(params.genes_interest){
+			makeblastdb_workflow(ch_genes_interest)
+			prodigal_chr_workflow(split_assembly_workflow.out.chromosome_path,chromosome)
+			prodigal_plasmid_workflow(split_assembly_workflow.out.plasmid_path,plasmid)
+			prodigal_phage_workflow(split_assembly_workflow.out.phage_path,phage)
+			
+			blast_chr_workflow(split_assembly_workflow.out.chromosome_path,makeblastdb_workflow.out.blastDB,percentage)
+			blast_plasmid_workflow(split_assembly_workflow.out.plasmid_path,makeblastdb_workflow.out.blastDB,percentage)
+			blast_phage_workflow(split_assembly_workflow.out.phage_path,makeblastdb_workflow.out.blastDB,percentage)
+		}
 
 
-x=gtdb_output.map{}
-x.view()
 
 	report_workflow( sample_name,
 					 fastqc_html_output,
@@ -692,22 +893,55 @@ x.view()
 					 plasclass_output,
         			 checkv_output,
         			 snippy_output,
-					 minimap2_output,
-					 gtdb_output,
-					 stats_output
+					 qualimap_output,
+					 stats_output,
+					 gtdb_output
 
         				//assembly2gene_table,
         				//assembly2gene_aligments,
         				//assembly2gene_peptides
 					)
-}
 
+/*	
+	multiqc_workflow( sample_name,
+					 fastqc_html_output,
+					 fastqc_trim_html_output,
+					 scaffolds_output,
+					 chromosome_path_output,
+					 plasmid_path_output,
+					 phage_path_output,
+					 assemblyqc_output,
+					 prokka_scaffolds_path_output,
+					 prokka_chr_path,
+					 prokka_plasmids_path,
+					 pharokka_path,
+					 plasclass_output,
+        			 checkv_output,
+        			 snippy_output,
+					 minimap2_output,
+					 stats_output,
+					 gtdb_output,
+					qualimap_output
+
+					
+
+        				//assembly2gene_table,
+        				//assembly2gene_aligments,
+        				//assembly2gene_peptides
+					)
+*/
+	cleanup_workflow(report_workflow.out.final_report)
+
+}
 
 
 
 workflow.onComplete { 
 	println ( workflow.success ? "\nDone! see the report in ${params.outdir} for more details \n" : "Oops .. something went wrong" )
 }
- 
+
+
+
+
 
 //\n//Taxonomical classifications ${db_gtdb_download_workflow.out.db_diskspace_val} 
