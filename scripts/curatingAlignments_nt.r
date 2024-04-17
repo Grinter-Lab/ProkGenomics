@@ -48,7 +48,7 @@ findPotentialStartsAndStops <- function(DNA_string){
      	{
         	codon <- codons[i]
         	occurrences <- matchPattern(codon, DNA_string)
-      		codonpositions <- occurrences\@ranges\@start  
+      		codonpositions <- occurrences@ranges@start  
         	numoccurrences <- length(codonpositions) 	
    			positions <- append(positions,codonpositions, after=length(positions))
      		types <- append(types,rep(codon, numoccurrences), after=length(types))
@@ -176,7 +176,7 @@ Alignment <- function(x){
 
 
 mySequences <- readDNAStringSet(file)
-namesunique=unique(mySequences\@ranges\@NAMES)
+namesunique=unique(mySequences@ranges@NAMES)
 mySequences <- mySequences[namesunique]
 myFirstAlignment=Alignment(mySequences)
 myFirstAlignment_reverse=Alignment(c(reverseComplement(mySequences[1]),mySequences[2]))
@@ -204,8 +204,8 @@ if(nSeq==2){
 	Seq_nogaps=gsub('-','',Seq)
 	x=table(strsplit(Seq_nogaps,''))
 	xORF=findORFsinSeq(Seq_nogaps)
-	bestORF=xORF[ xORF\$orflengths==max(xORF\$orflengths),]
-	query_trans=Biostrings::translate(DNAString(substring(Seq_nogaps, bestORF\$orfstart,bestORF\$orfstops)),if.fuzzy.codon='solve')
+	bestORF=xORF[ xORF$orflengths==max(xORF$orflengths),]
+	query_trans=Biostrings::translate(DNAString(substring(Seq_nogaps, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
 	Seq_trl=query_trans
 	length_Seqtrl=length(Seq_trl)
 	Seq_trl_string=strsplit(toString(Seq_trl),'')	
@@ -221,8 +221,8 @@ if(nSeq==2){
 	Seq_nogapsref=gsub('-','',Seqref)
 	xref=table(strsplit(Seq_nogapsref,''))
 	xORFref=findORFsinSeq(Seq_nogapsref)
-	bestORF=xORFref[ xORFref\$orflengths==max(xORFref\$orflengths),]
-	ref_trans=Biostrings::translate(DNAString(substring(Seq_nogapsref, bestORF\$orfstart,bestORF\$orfstops)),if.fuzzy.codon='solve')
+	bestORF=xORFref[ xORFref$orflengths==max(xORFref$orflengths),]
+	ref_trans=Biostrings::translate(DNAString(substring(Seq_nogapsref, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
 	Seq_trlref=ref_trans
 	length_Seqtrlref=length(ref_trans)
 	Seq_trl_stringref=strsplit(toString(Seq_trlref),'')	
@@ -230,22 +230,22 @@ if(nSeq==2){
 
 	######	
 	Align=data.frame(Ref=c(unlist(Seqref_string)),Query=c(unlist(Seq_string)))
-	Align\$position=c(1:dim(Align)[1])
-	Align\$Ref=as.character(Align\$Ref)
-	Align\$Query=as.character(Align\$Query)
-	Align\$mutation=paste(Align\$Ref,Align\$position,Align\$Query,sep='')
-	Align\$Change='identical'
-	Align\$Change[ Align\$Query!=Align\$Ref ]='SNP'
-	Align\$Change[ Align\$Query=='-' | Align\$Query=='N' ]='GAP'
-	Align\$Change[ Align\$Ref=='-' | Align\$Ref=='N' ]='INSERTION'
+	Align$position=c(1:dim(Align)[1])
+	Align$Ref=as.character(Align$Ref)
+	Align$Query=as.character(Align$Query)
+	Align$mutation=paste(Align$Ref,Align$position,Align$Query,sep='')
+	Align$Change='identical'
+	Align$Change[ Align$Query!=Align$Ref ]='SNP'
+	Align$Change[ Align$Query=='-' | Align$Query=='N' ]='GAP'
+	Align$Change[ Align$Ref=='-' | Align$Ref=='N' ]='INSERTION'
 				
 				
-	changesSNPs=Align[Align\$Change=='SNP',]
-	changesGAPs=Align[Align\$Change=='GAP',]
-	changesINSERTION=Align[Align\$Change=='INSERTION',]
-	SNPs=paste(changesSNPs\$mutation,collapse=',')
-	GAPs=paste(changesGAPs\$mutation,collapse=',')
-	INSERTION=paste(changesINSERTION\$mutation,collapse=',')
+	changesSNPs=Align[Align$Change=='SNP',]
+	changesGAPs=Align[Align$Change=='GAP',]
+	changesINSERTION=Align[Align$Change=='INSERTION',]
+	SNPs=paste(changesSNPs$mutation,collapse=',')
+	GAPs=paste(changesGAPs$mutation,collapse=',')
+	INSERTION=paste(changesINSERTION$mutation,collapse=',')
 				
 	myAlignment=myFirstAlignment
 	Ncopies=1
@@ -255,12 +255,12 @@ k=0
 
 if(nSeq==3){
 	#print('3 sequences')
- 	sequences=length(mySequences\@ranges\@NAMES)
- 	xx <- as.data.frame(matrix(ncol=sequences, nrow=myFirstAlignment\@unmasked\@ranges\@width[1]))
+ 	sequences=length(mySequences@ranges@NAMES)
+ 	xx <- as.data.frame(matrix(ncol=sequences, nrow=myFirstAlignment@unmasked@ranges@width[1]))
  
 	names=matrix(ncol=sequences, nrow=1)
 	 
-    for( i in mySequences\@ranges\@NAMES){ 
+    for( i in mySequences@ranges@NAMES){ 
         x=c(unlist(strsplit(toString(unmasked(myFirstAlignment)[[i]]),'')))
         k=k+1
     	xx[,k]=x
@@ -268,7 +268,7 @@ if(nSeq==3){
     }
   
     		
-    xx\$consensus=apply(xx, 1, function(x) {
+    xx$consensus=apply(xx, 1, function(x) {
 					y=unique(x[-1])	
     				y=y[y!='-']	
 					if(length(y)==0){y='-'}
@@ -277,12 +277,12 @@ if(nSeq==3){
 					if(length(y)>1){y='N'}
 					return(y)})
 
-	conSeq=paste(xx\$consensus,collapse='')
+	conSeq=paste(xx$consensus,collapse='')
 	conSeq=gsub('-','',conSeq)
   	consensusSeq=DNAStringSet(conSeq)
-  	consensusSeq\@ranges\@NAMES=mySequences\@ranges\@NAMES[2]
+  	consensusSeq@ranges@NAMES=mySequences@ranges@NAMES[2]
   	ref=DNAStringSet(mySequences[[1]])
-  	ref\@ranges\@NAMES=mySequences\@ranges\@NAMES[1]
+  	ref@ranges@NAMES=mySequences@ranges@NAMES[1]
   		
   	myAlignment=invisible(Alignment(c(ref,consensusSeq)))
 	myAlignment_reverse=Alignment(c(reverseComplement(ref),consensusSeq))
@@ -306,8 +306,8 @@ if(nSeq==3){
 	Seq_nogaps=gsub('-','',Seq)
 	x=table(strsplit(Seq_nogaps,''))
 	xORF=findORFsinSeq(Seq_nogaps)
-	bestORF=xORF[ xORF\$orflengths==max(xORF\$orflengths),]
-	query_trans=Biostrings::translate(DNAString(substring(Seq_nogaps, bestORF\$orfstart,bestORF\$orfstops)),if.fuzzy.codon='solve')
+	bestORF=xORF[ xORF$orflengths==max(xORF$orflengths),]
+	query_trans=Biostrings::translate(DNAString(substring(Seq_nogaps, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
 	Seq_trl=query_trans
 	length_Seqtrl=length(Seq_trl)
 	Seq_trl_string=strsplit(toString(Seq_trl),'')	
@@ -325,8 +325,8 @@ if(nSeq==3){
     Seq_nogapsref=gsub('-','',Seqref)
     xref=table(strsplit(Seq_nogapsref,''))
     xORFref=findORFsinSeq(Seq_nogapsref)
-	bestORF=xORFref[ xORFref\$orflengths==max(xORFref\$orflengths),]
-	ref_trans=Biostrings::translate(DNAString(substring(Seq_nogapsref, bestORF\$orfstart,bestORF\$orfstops)),if.fuzzy.codon='solve')
+	bestORF=xORFref[ xORFref$orflengths==max(xORFref$orflengths),]
+	ref_trans=Biostrings::translate(DNAString(substring(Seq_nogapsref, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
     Seq_trlref=ref_trans
     length_Seqtrlref=length(ref_trans)
     Seq_trl_stringref=strsplit(toString(Seq_trlref),'')	
@@ -334,22 +334,22 @@ if(nSeq==3){
 
 ######	
 	Align=data.frame(Ref=c(unlist(Seqref_string)),Query=c(unlist(Seq_string)))
-	Align\$position=c(1:dim(Align)[1])
-	Align\$Ref=as.character(Align\$Ref)
-	Align\$Query=as.character(Align\$Query)
-	Align\$mutation=paste(Align\$Ref,Align\$position,Align\$Query,sep='')
-	Align\$Change='identical'
-	Align\$Change[ Align\$Query!=Align\$Ref ]='SNP'
-	Align\$Change[ Align\$Query=='-' | Align\$Query=='N' ]='GAP'
-	Align\$Change[ Align\$Ref=='-' | Align\$Ref=='N' ]='INSERTION'
+	Align$position=c(1:dim(Align)[1])
+	Align$Ref=as.character(Align$Ref)
+	Align$Query=as.character(Align$Query)
+	Align$mutation=paste(Align$Ref,Align$position,Align$Query,sep='')
+	Align$Change='identical'
+	Align$Change[ Align$Query!=Align$Ref ]='SNP'
+	Align$Change[ Align$Query=='-' | Align$Query=='N' ]='GAP'
+	Align$Change[ Align$Ref=='-' | Align$Ref=='N' ]='INSERTION'
 			
 			
-	changesSNPs=Align[Align\$Change=='SNP',]
-	changesGAPs=Align[Align\$Change=='GAP',]
-	changesINSERTION=Align[Align\$Change=='INSERTION',]
-	SNPs=paste(changesSNPs\$mutation,collapse=',')
-	GAPs=paste(changesGAPs\$mutation,collapse=',')
-	INSERTION=paste(changesINSERTION\$mutation,collapse=',')
+	changesSNPs=Align[Align$Change=='SNP',]
+	changesGAPs=Align[Align$Change=='GAP',]
+	changesINSERTION=Align[Align$Change=='INSERTION',]
+	SNPs=paste(changesSNPs$mutation,collapse=',')
+	GAPs=paste(changesGAPs$mutation,collapse=',')
+	INSERTION=paste(changesINSERTION$mutation,collapse=',')
 
 	if(any(xx[,2]=='-') && any(xx[,3]=='-')){Ncopies=1}else{Ncopies=2}		
    
@@ -359,18 +359,18 @@ if(nSeq==3){
 k=0
  if(nSeq==4){
 	#print('4 sequences')
- 	sequences=length(mySequences\@ranges\@NAMES)
- 	xx <- as.data.frame(matrix(ncol=sequences, nrow=myFirstAlignment\@unmasked\@ranges\@width[1]))
+ 	sequences=length(mySequences@ranges@NAMES)
+ 	xx <- as.data.frame(matrix(ncol=sequences, nrow=myFirstAlignment@unmasked@ranges@width[1]))
  	names=matrix(ncol=sequences, nrow=1)
 	 
-    for( i in mySequences\@ranges\@NAMES){ 
+    for( i in mySequences@ranges@NAMES){ 
         x=c(unlist(strsplit(toString(unmasked(myFirstAlignment)[[i]]),'')))
         k=k+1
     	xx[,k]=x
         names[,k]=i
     }
 
-	xx\$consensus=apply(xx, 1, function(x) {
+	xx$consensus=apply(xx, 1, function(x) {
 						y=unique(x[-1])	
     					y=y[y!='-']	
 						if(length(y)==0){y='-'}
@@ -381,12 +381,12 @@ k=0
 						return(y)})
 
   		
-  	conSeq=paste(xx\$consensus,collapse='')
+  	conSeq=paste(xx$consensus,collapse='')
 	conSeq=gsub('-','',conSeq)
   	consensusSeq=DNAStringSet(conSeq)
-  	consensusSeq\@ranges\@NAMES=mySequences\@ranges\@NAMES[2]
+  	consensusSeq@ranges@NAMES=mySequences@ranges@NAMES[2]
   	ref=DNAStringSet(mySequences[[1]])
-  	ref\@ranges\@NAMES=mySequences\@ranges\@NAMES[1]
+  	ref@ranges@NAMES=mySequences@ranges@NAMES[1]
   		
   	myAlignment=invisible(Alignment(c(ref,consensusSeq)))
 	myAlignment_reverse=Alignment(c(reverseComplement(ref),consensusSeq))
@@ -409,8 +409,8 @@ k=0
   	Seq_nogaps=gsub('-','',Seq)
   	x=table(strsplit(Seq_nogaps,''))
   	xORF=findORFsinSeq(Seq_nogaps)
-  	bestORF=xORF[ xORF\$orflengths==max(xORF\$orflengths),]
-	query_trans=Biostrings::translate(DNAString(substring(Seq_nogaps, bestORF\$orfstart,bestORF\$orfstops)),if.fuzzy.codon='solve')
+  	bestORF=xORF[ xORF$orflengths==max(xORF$orflengths),]
+	query_trans=Biostrings::translate(DNAString(substring(Seq_nogaps, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
     Seq_trl=query_trans
   	length_Seqtrl=length(Seq_trl)
     Seq_trl_string=strsplit(toString(Seq_trl),'')	
@@ -428,8 +428,8 @@ k=0
     Seq_nogapsref=gsub('-','',Seqref)
     xref=table(strsplit(Seq_nogapsref,''))
     xORFref=findORFsinSeq(Seq_nogapsref)
-	bestORF=xORFref[ xORFref\$orflengths==max(xORFref\$orflengths),]
-	ref_trans=Biostrings::translate(DNAString(substring(Seq_nogapsref, bestORF\$orfstart,bestORF\$orfstops)),if.fuzzy.codon='solve')
+	bestORF=xORFref[ xORFref$orflengths==max(xORFref$orflengths),]
+	ref_trans=Biostrings::translate(DNAString(substring(Seq_nogapsref, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
     Seq_trlref=ref_trans
     length_Seqtrlref=length(ref_trans)
     Seq_trl_stringref=strsplit(toString(Seq_trlref),'')	
@@ -437,24 +437,24 @@ k=0
 
 ######	
 	Align=data.frame(Ref=c(unlist(Seqref_string)),Query=c(unlist(Seq_string)))
-	Align\$position=c(1:dim(Align)[1])
+	Align$position=c(1:dim(Align)[1])
 
 	
-	Align\$Ref=as.character(Align\$Ref)
-	Align\$Query=as.character(Align\$Query)
-	Align\$mutation=paste(Align\$Ref,Align\$position,Align\$Query,sep='')
-	Align\$Change='identical'
-	Align\$Change[ Align\$Query!=Align\$Ref ]='SNP'
-	Align\$Change[ Align\$Query=='-' | Align\$Query=='N' ]='GAP'
-	Align\$Change[ Align\$Ref=='-' | Align\$Ref=='N' ]='INSERTION'
+	Align$Ref=as.character(Align$Ref)
+	Align$Query=as.character(Align$Query)
+	Align$mutation=paste(Align$Ref,Align$position,Align$Query,sep='')
+	Align$Change='identical'
+	Align$Change[ Align$Query!=Align$Ref ]='SNP'
+	Align$Change[ Align$Query=='-' | Align$Query=='N' ]='GAP'
+	Align$Change[ Align$Ref=='-' | Align$Ref=='N' ]='INSERTION'
 			
 			
-	changesSNPs=Align[Align\$Change=='SNP',]
-	changesGAPs=Align[Align\$Change=='GAP',]
-	changesINSERTION=Align[Align\$Change=='INSERTION',]
-	SNPs=paste(changesSNPs\$mutation,collapse=',')
-	GAPs=paste(changesGAPs\$mutation,collapse=',')
-	INSERTION=paste(changesINSERTION\$mutation,collapse=',')
+	changesSNPs=Align[Align$Change=='SNP',]
+	changesGAPs=Align[Align$Change=='GAP',]
+	changesINSERTION=Align[Align$Change=='INSERTION',]
+	SNPs=paste(changesSNPs$mutation,collapse=',')
+	GAPs=paste(changesGAPs$mutation,collapse=',')
+	INSERTION=paste(changesINSERTION$mutation,collapse=',')
 
 	if(any(xx[,2]=='-') && any(xx[,3]=='-') && any(xx[,4]=='-')){Ncopies=1}else{Ncopies=3}		
 	if(any(xx[,2]=='-') && any(xx[,3]=='-') ){Ncopies=1}else{Ncopies=2}		
@@ -466,18 +466,18 @@ k=0
  if(nSeq==5){
  		#print('5 sequences')
  
-  sequences=length(mySequences\@ranges\@NAMES)
-	xx <- as.data.frame(matrix(ncol=sequences, nrow=myFirstAlignment\@unmasked\@ranges\@width[1]))
+  sequences=length(mySequences@ranges@NAMES)
+	xx <- as.data.frame(matrix(ncol=sequences, nrow=myFirstAlignment@unmasked@ranges@width[1]))
 	names=matrix(ncol=sequences, nrow=1)
 	 
-    for( i in mySequences\@ranges\@NAMES){ 
+    for( i in mySequences@ranges@NAMES){ 
         	x=c(unlist(strsplit(toString(unmasked(myFirstAlignment)[[i]]),'')))
         	k=k+1
     		xx[,k]=x
         	names[,k]=i
     		}
     
-	xx\$consensus=apply(xx, 1, function(x) {
+	xx$consensus=apply(xx, 1, function(x) {
 						y=unique(x[-1])	
     					y=y[y!='-']	
 						if(length(y)==0){y='-'}
@@ -489,13 +489,13 @@ k=0
 						return(y)})
 
   		
-  	conSeq=paste(xx\$consensus,collapse='')
+  	conSeq=paste(xx$consensus,collapse='')
 	conSeq=gsub('-','',conSeq)
   	consensusSeq=DNAStringSet(conSeq)
-  	consensusSeq\@ranges\@NAMES=mySequences\@ranges\@NAMES[2]
+  	consensusSeq@ranges@NAMES=mySequences@ranges@NAMES[2]
   		
   	ref=DNAStringSet(mySequences[[1]])
-  	ref\@ranges\@NAMES=mySequences\@ranges\@NAMES[1]
+  	ref@ranges@NAMES=mySequences@ranges@NAMES[1]
   		
   	myAlignment=invisible(Alignment(c(ref,consensusSeq)))
 	myAlignment_reverse=Alignment(c(reverseComplement(ref),consensusSeq))
@@ -519,8 +519,8 @@ k=0
   	Seq_nogaps=gsub('-','',Seq)
   	x=table(strsplit(Seq_nogaps,''))
   	xORF=findORFsinSeq(Seq_nogaps)
-  	bestORF=xORF[ xORF\$orflengths==max(xORF\$orflengths),]
-	query_trans=Biostrings::translate(DNAString(substring(Seq_nogaps, bestORF\$orfstart,bestORF\$orfstops)),if.fuzzy.codon='solve')
+  	bestORF=xORF[ xORF$orflengths==max(xORF$orflengths),]
+	query_trans=Biostrings::translate(DNAString(substring(Seq_nogaps, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
     Seq_trl=query_trans
   	length_Seqtrl=length(Seq_trl)
     Seq_trl_string=strsplit(toString(Seq_trl),'')	
@@ -536,8 +536,8 @@ k=0
     Seq_nogapsref=gsub('-','',Seqref)
     xref=table(strsplit(Seq_nogapsref,''))
     xORFref=findORFsinSeq(Seq_nogapsref)
-	bestORF=xORFref[ xORFref\$orflengths==max(xORFref\$orflengths),]
-	ref_trans=Biostrings::translate(DNAString(substring(Seq_nogapsref, bestORF\$orfstart,bestORF\$orfstops)),if.fuzzy.codon='solve')
+	bestORF=xORFref[ xORFref$orflengths==max(xORFref$orflengths),]
+	ref_trans=Biostrings::translate(DNAString(substring(Seq_nogapsref, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
     Seq_trlref=ref_trans
     length_Seqtrlref=length(ref_trans)
     Seq_trl_stringref=strsplit(toString(Seq_trlref),'')	
@@ -545,23 +545,23 @@ k=0
 
 ######	
 	Align=data.frame(Ref=c(unlist(Seqref_string)),Query=c(unlist(Seq_string)))
-	Align\$position=c(1:dim(Align)[1])
+	Align$position=c(1:dim(Align)[1])
 
 	
-	Align\$Ref=as.character(Align\$Ref)
-	Align\$Query=as.character(Align\$Query)
-	Align\$mutation=paste(Align\$Ref,Align\$position,Align\$Query,sep='')
-	Align\$Change='identical'
-	Align\$Change[ Align\$Query!=Align\$Ref ]='SNP'
-	Align\$Change[ Align\$Query=='-' | Align\$Query=='N' ]='GAP'
-	Align\$Change[ Align\$Ref=='-' | Align\$Ref=='N' ]='INSERTION'
+	Align$Ref=as.character(Align$Ref)
+	Align$Query=as.character(Align$Query)
+	Align$mutation=paste(Align$Ref,Align$position,Align$Query,sep='')
+	Align$Change='identical'
+	Align$Change[ Align$Query!=Align$Ref ]='SNP'
+	Align$Change[ Align$Query=='-' | Align$Query=='N' ]='GAP'
+	Align$Change[ Align$Ref=='-' | Align$Ref=='N' ]='INSERTION'
 					
-	changesSNPs=Align[Align\$Change=='SNP',]
-	changesGAPs=Align[Align\$Change=='GAP',]
-	changesINSERTION=Align[Align\$Change=='INSERTION',]
-	SNPs=paste(changesSNPs\$mutation,collapse=',')
-	GAPs=paste(changesGAPs\$mutation,collapse=',')
-	INSERTION=paste(changesINSERTION\$mutation,collapse=',')
+	changesSNPs=Align[Align$Change=='SNP',]
+	changesGAPs=Align[Align$Change=='GAP',]
+	changesINSERTION=Align[Align$Change=='INSERTION',]
+	SNPs=paste(changesSNPs$mutation,collapse=',')
+	GAPs=paste(changesGAPs$mutation,collapse=',')
+	INSERTION=paste(changesINSERTION$mutation,collapse=',')
 			
 	if(any(xx[,2]=='-') && any(xx[,3]=='-') && any(xx[,4]=='-') && any(xx[,5]=='-')){Ncopies=1}else{Ncopies=4}	
 	if(any(xx[,2]=='-') && any(xx[,3]=='-') && any(xx[,4]=='-' )){Ncopies=1}else{Ncopies=3}		
@@ -573,18 +573,18 @@ k=0
  if(nSeq==6){
  		#print('6 sequences')
  
-	sequences=length(mySequences\@ranges\@NAMES)
-	xx <- as.data.frame(matrix(ncol=sequences, nrow=myFirstAlignment\@unmasked\@ranges\@width[1]))
+	sequences=length(mySequences@ranges@NAMES)
+	xx <- as.data.frame(matrix(ncol=sequences, nrow=myFirstAlignment@unmasked@ranges@width[1]))
 	names=matrix(ncol=sequences, nrow=1)
 	 
-    for( i in mySequences\@ranges\@NAMES){ 
+    for( i in mySequences@ranges@NAMES){ 
         	x=c(unlist(strsplit(toString(unmasked(myFirstAlignment)[[i]]),'')))
         	k=k+1
     		xx[,k]=x
         	names[,k]=i
     		}
     
-	xx\$consensus=apply(xx, 1, function(x) {
+	xx$consensus=apply(xx, 1, function(x) {
 						y=unique(x[-1])	
     					y=y[y!='-']	
 						if(length(y)==0){y='-'}
@@ -597,12 +597,12 @@ k=0
 						return(y)})
 
   		
-  	conSeq=paste(xx\$consensus,collapse='')
+  	conSeq=paste(xx$consensus,collapse='')
 	conSeq=gsub('-','',conSeq)
   	consensusSeq=DNAStringSet(conSeq)
-  	consensusSeq\@ranges\@NAMES=mySequences\@ranges\@NAMES[2]
+  	consensusSeq@ranges@NAMES=mySequences@ranges@NAMES[2]
   	ref=DNAStringSet(mySequences[[1]])
-  	ref\@ranges\@NAMES=mySequences\@ranges\@NAMES[1]
+  	ref@ranges@NAMES=mySequences@ranges@NAMES[1]
   		
   	myAlignment=invisible(Alignment(c(ref,consensusSeq)))
 	myAlignment_reverse=Alignment(c(reverseComplement(ref),consensusSeq))
@@ -625,8 +625,8 @@ k=0
   	Seq_nogaps=gsub('-','',Seq)
   	x=table(strsplit(Seq_nogaps,''))
   	xORF=findORFsinSeq(Seq_nogaps)
-  	bestORF=xORF[ xORF\$orflengths==max(xORF\$orflengths),]
-	query_trans=Biostrings::translate(DNAString(substring(Seq_nogaps, bestORF\$orfstart,bestORF\$orfstops)),if.fuzzy.codon='solve')
+  	bestORF=xORF[ xORF$orflengths==max(xORF$orflengths),]
+	query_trans=Biostrings::translate(DNAString(substring(Seq_nogaps, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
     Seq_trl=query_trans
   	length_Seqtrl=length(Seq_trl)
     Seq_trl_string=strsplit(toString(Seq_trl),'')	
@@ -644,8 +644,8 @@ k=0
     Seq_nogapsref=gsub('-','',Seqref)
 	xref=table(strsplit(Seq_nogapsref,''))
     xORFref=findORFsinSeq(Seq_nogapsref)
-	bestORF=xORFref[ xORFref\$orflengths==max(xORFref\$orflengths),]
-	ref_trans=Biostrings::translate(DNAString(substring(Seq_nogapsref, bestORF\$orfstart,bestORF\$orfstops)),if.fuzzy.codon='solve')
+	bestORF=xORFref[ xORFref$orflengths==max(xORFref$orflengths),]
+	ref_trans=Biostrings::translate(DNAString(substring(Seq_nogapsref, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
     Seq_trlref=ref_trans
     length_Seqtrlref=length(ref_trans)
     Seq_trl_stringref=strsplit(toString(Seq_trlref),'')	
@@ -653,22 +653,22 @@ k=0
 
 ######	
 	Align=data.frame(Ref=c(unlist(Seqref_string)),Query=c(unlist(Seq_string)))
-	Align\$position=c(1:dim(Align)[1])
-	Align\$Ref=as.character(Align\$Ref)
-	Align\$Query=as.character(Align\$Query)
-	Align\$mutation=paste(Align\$Ref,Align\$position,Align\$Query,sep='')
-	Align\$Change='identical'
-	Align\$Change[ Align\$Query!=Align\$Ref ]='SNP'
-	Align\$Change[ Align\$Query=='-' | Align\$Query=='N' ]='GAP'
-	Align\$Change[ Align\$Ref=='-' | Align\$Ref=='N' ]='INSERTION'
+	Align$position=c(1:dim(Align)[1])
+	Align$Ref=as.character(Align$Ref)
+	Align$Query=as.character(Align$Query)
+	Align$mutation=paste(Align$Ref,Align$position,Align$Query,sep='')
+	Align$Change='identical'
+	Align$Change[ Align$Query!=Align$Ref ]='SNP'
+	Align$Change[ Align$Query=='-' | Align$Query=='N' ]='GAP'
+	Align$Change[ Align$Ref=='-' | Align$Ref=='N' ]='INSERTION'
 			
 			
-	changesSNPs=Align[Align\$Change=='SNP',]
-	changesGAPs=Align[Align\$Change=='GAP',]
-	changesINSERTION=Align[Align\$Change=='INSERTION',]
-	SNPs=paste(changesSNPs\$mutation,collapse=',')
-	GAPs=paste(changesGAPs\$mutation,collapse=',')
-	INSERTION=paste(changesINSERTION\$mutation,collapse=',')
+	changesSNPs=Align[Align$Change=='SNP',]
+	changesGAPs=Align[Align$Change=='GAP',]
+	changesINSERTION=Align[Align$Change=='INSERTION',]
+	SNPs=paste(changesSNPs$mutation,collapse=',')
+	GAPs=paste(changesGAPs$mutation,collapse=',')
+	INSERTION=paste(changesINSERTION$mutation,collapse=',')
 			
 	if(any(xx[,2]=='-') && any(xx[,3]=='-') && any(xx[,4]=='-') && any(xx[,5]=='-') && any(xx[,6]=='-')){Ncopies=1}else{Ncopies=5}
 	if(any(xx[,2]=='-') && any(xx[,3]=='-') && any(xx[,4]=='-') && any(xx[,5]=='-')){Ncopies=1}else{Ncopies=4}	
@@ -681,18 +681,18 @@ k=0
  if(nSeq==7){
  		#print('7 sequences')
  
-  sequences=length(mySequences\@ranges\@NAMES)
- 	  xx <- as.data.frame(matrix(ncol=sequences, nrow=myFirstAlignment\@unmasked\@ranges\@width[1]))
+  sequences=length(mySequences@ranges@NAMES)
+ 	  xx <- as.data.frame(matrix(ncol=sequences, nrow=myFirstAlignment@unmasked@ranges@width[1]))
  
 	  names=matrix(ncol=sequences, nrow=1)
 	 
-    		for( i in mySequences\@ranges\@NAMES){ 
+    		for( i in mySequences@ranges@NAMES){ 
         	x=c(unlist(strsplit(toString(unmasked(myFirstAlignment)[[i]]),'')))
         	k=k+1
     		xx[,k]=x
         	names[,k]=i
     		}
-    				xx\$consensus=apply(xx, 1, function(x) {
+    				xx$consensus=apply(xx, 1, function(x) {
 						y=unique(x[-1])	
     					y=y[y!='-']	
 						if(length(y)==0){y='-'}
@@ -706,12 +706,12 @@ k=0
 						return(y)})
 
   		
-  		conSeq=paste(xx\$consensus,collapse='')
+  		conSeq=paste(xx$consensus,collapse='')
 		conSeq=gsub('-','',conSeq)
   		consensusSeq=DNAStringSet(conSeq)
-  		consensusSeq\@ranges\@NAMES=mySequences\@ranges\@NAMES[2]
+  		consensusSeq@ranges@NAMES=mySequences@ranges@NAMES[2]
   		ref=DNAStringSet(mySequences[[1]])
-  		ref\@ranges\@NAMES=mySequences\@ranges\@NAMES[1]
+  		ref@ranges@NAMES=mySequences@ranges@NAMES[1]
   		
   		myAlignment=invisible(Alignment(c(ref,consensusSeq)))
 		myAlignment_reverse=Alignment(c(reverseComplement(ref),consensusSeq))
@@ -735,8 +735,8 @@ k=0
   			Seq_nogaps=gsub('-','',Seq)
   			x=table(strsplit(Seq_nogaps,''))
   			xORF=findORFsinSeq(Seq_nogaps)
-  			bestORF=xORF[ xORF\$orflengths==max(xORF\$orflengths),]
-			query_trans=Biostrings::translate(DNAString(substring(Seq_nogaps, bestORF\$orfstart,bestORF\$orfstops)),if.fuzzy.codon='solve')
+  			bestORF=xORF[ xORF$orflengths==max(xORF$orflengths),]
+			query_trans=Biostrings::translate(DNAString(substring(Seq_nogaps, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
       		Seq_trl=query_trans
   			length_Seqtrl=length(Seq_trl)
       		Seq_trl_string=strsplit(toString(Seq_trl),'')	
@@ -754,8 +754,8 @@ k=0
       		Seq_nogapsref=gsub('-','',Seqref)
       		xref=table(strsplit(Seq_nogapsref,''))
       		xORFref=findORFsinSeq(Seq_nogapsref)
-			bestORF=xORFref[ xORFref\$orflengths==max(xORFref\$orflengths),]
-			ref_trans=Biostrings::translate(DNAString(substring(Seq_nogapsref, bestORF\$orfstart,bestORF\$orfstops)),if.fuzzy.codon='solve')
+			bestORF=xORFref[ xORFref$orflengths==max(xORFref$orflengths),]
+			ref_trans=Biostrings::translate(DNAString(substring(Seq_nogapsref, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
       		Seq_trlref=ref_trans
       		length_Seqtrlref=length(ref_trans)
       		Seq_trl_stringref=strsplit(toString(Seq_trlref),'')	
@@ -763,24 +763,24 @@ k=0
 
 ######	
 			Align=data.frame(Ref=c(unlist(Seqref_string)),Query=c(unlist(Seq_string)))
-				Align\$position=c(1:dim(Align)[1])
+				Align$position=c(1:dim(Align)[1])
 
 	
-			Align\$Ref=as.character(Align\$Ref)
-			Align\$Query=as.character(Align\$Query)
-			Align\$mutation=paste(Align\$Ref,Align\$position,Align\$Query,sep='')
-			Align\$Change='identical'
-			Align\$Change[ Align\$Query!=Align\$Ref ]='SNP'
-			Align\$Change[ Align\$Query=='-' | Align\$Query=='N' ]='GAP'
-			Align\$Change[ Align\$Ref=='-' | Align\$Ref=='N' ]='INSERTION'
+			Align$Ref=as.character(Align$Ref)
+			Align$Query=as.character(Align$Query)
+			Align$mutation=paste(Align$Ref,Align$position,Align$Query,sep='')
+			Align$Change='identical'
+			Align$Change[ Align$Query!=Align$Ref ]='SNP'
+			Align$Change[ Align$Query=='-' | Align$Query=='N' ]='GAP'
+			Align$Change[ Align$Ref=='-' | Align$Ref=='N' ]='INSERTION'
 			
 			
-			changesSNPs=Align[Align\$Change=='SNP',]
-			changesGAPs=Align[Align\$Change=='GAP',]
-			changesINSERTION=Align[Align\$Change=='INSERTION',]
-			SNPs=paste(changesSNPs\$mutation,collapse=',')
-			GAPs=paste(changesGAPs\$mutation,collapse=',')
-			INSERTION=paste(changesINSERTION\$mutation,collapse=',')
+			changesSNPs=Align[Align$Change=='SNP',]
+			changesGAPs=Align[Align$Change=='GAP',]
+			changesINSERTION=Align[Align$Change=='INSERTION',]
+			SNPs=paste(changesSNPs$mutation,collapse=',')
+			GAPs=paste(changesGAPs$mutation,collapse=',')
+			INSERTION=paste(changesINSERTION$mutation,collapse=',')
 		
 			if(any(xx[,2]=='-') && any(xx[,3]=='-') && any(xx[,4]=='-') && any(xx[,5]=='-') && any(xx[,6]=='-') && any(xx[,6]=='-')){Ncopies=1}else{Ncopies=6}
 			if(any(xx[,2]=='-') && any(xx[,3]=='-') && any(xx[,4]=='-') && any(xx[,5]=='-') && any(xx[,6]=='-')){Ncopies=1}else{Ncopies=5}
@@ -793,7 +793,7 @@ k=0
 
 
 
-names=mySequences\@ranges\@NAMES
+names=mySequences@ranges@NAMES
 
 if(Ncopies==1){
 
@@ -803,8 +803,8 @@ SeqAA=strsplit(toString(  toString(unmasked(myAlignmentAA)[[2]] ) ),'')
 PepAlign=data.frame(Ref=unlist(RefAA),Query=unlist(SeqAA))
  
  
-PepAlign\$match[PepAlign\$Ref== PepAlign\$Query]=1
-PepAlign\$match[PepAlign\$Ref!= PepAlign\$Query]=0
+PepAlign$match[PepAlign$Ref== PepAlign$Query]=1
+PepAlign$match[PepAlign$Ref!= PepAlign$Query]=0
 
 myAlignmentDNA=invisible(msa(c(DNAStringSet(Seqref),DNAStringSet(Seq))))
 RefDNA=strsplit(toString(  toString(unmasked(myAlignmentDNA)[[1]] ) ),'')
@@ -812,14 +812,14 @@ SeqDNA=strsplit(toString(  toString(unmasked(myAlignmentDNA)[[2]] ) ),'')
 DNAAlign=data.frame(Ref=unlist(RefDNA),Query=unlist(SeqDNA))
  
  
-PepAlign\$match[PepAlign\$Ref== PepAlign\$Query]=1
-PepAlign\$match[PepAlign\$Ref!= PepAlign\$Query]=0
+PepAlign$match[PepAlign$Ref== PepAlign$Query]=1
+PepAlign$match[PepAlign$Ref!= PepAlign$Query]=0
 
-DNAAlign\$match[DNAAlign\$Ref== DNAAlign\$Query]=1
-DNAAlign\$match[DNAAlign\$Ref!= DNAAlign\$Query]=0
+DNAAlign$match[DNAAlign$Ref== DNAAlign$Query]=1
+DNAAlign$match[DNAAlign$Ref!= DNAAlign$Query]=0
 
-PepAlignSimilarity=sum(PepAlign\$match/length(PepAlign\$match))*100	
-DNAAlignSimilarity=sum(DNAAlign\$match/length(DNAAlign\$match))*100
+PepAlignSimilarity=sum(PepAlign$match/length(PepAlign$match))*100	
+DNAAlignSimilarity=sum(DNAAlign$match/length(DNAAlign$match))*100
 
 query=strsplit(names[2],'###')[[1]][1]
 start=strsplit(names[2],'###')[[1]][2]
@@ -828,7 +828,7 @@ strand=strsplit(names[2],'###')[[1]][4]
 GenomeFile=strsplit(names[2],':')[[1]][2]
 
 
-startingcodon= min(which(PepAlign\$match==1))
+startingcodon= min(which(PepAlign$match==1))
 
 if (stopsref != stops[1]){classification='possibly_truncated'}else{classification='present'}
 if (startingcodon != 1){classification='late_startcodon'}else{classification='possibly_truncated'}
@@ -890,8 +890,8 @@ ff=gsub('\\\\)','',ff)
 SeqName=ff
 x=table(strsplit(SeqName,''))
 xORF=findORFsinSeq(SeqName)
-bestORF=xORF[ xORF\$orflengths==max(xORF\$orflengths),]
-query_trans=Biostrings::translate(DNAString(substring(SeqName, bestORF\$orfstart,bestORF\$orfstops)),if.fuzzy.codon='solve')
+bestORF=xORF[ xORF$orflengths==max(xORF$orflengths),]
+query_trans=Biostrings::translate(DNAString(substring(SeqName, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
 Seq_trl=query_trans
 length_Seqtrl=length(Seq_trl)
 Seq_trl_string=strsplit(toString(Seq_trl),'')	
@@ -904,8 +904,8 @@ SeqAA=strsplit(toString(  toString(unmasked(myAlignmentAA)[[2]] ) ),'')
 PepAlign=data.frame(Ref=unlist(RefAA),Query=unlist(SeqAA))
  
  
-PepAlign\$match[PepAlign\$Ref== PepAlign\$Query]=1
-PepAlign\$match[PepAlign\$Ref!= PepAlign\$Query]=0
+PepAlign$match[PepAlign$Ref== PepAlign$Query]=1
+PepAlign$match[PepAlign$Ref!= PepAlign$Query]=0
 
 myAlignmentDNA=invisible(msa(c(DNAStringSet(Seqref),DNAStringSet(SeqName))))
 RefDNA=strsplit(toString(  toString(unmasked(myAlignmentDNA)[[1]] ) ),'')
@@ -913,16 +913,16 @@ SeqDNA=strsplit(toString(  toString(unmasked(myAlignmentDNA)[[2]] ) ),'')
 DNAAlign=data.frame(Ref=unlist(RefDNA),Query=unlist(SeqDNA))
  
  
-PepAlign\$match[PepAlign\$Ref== PepAlign\$Query]=1
-PepAlign\$match[PepAlign\$Ref!= PepAlign\$Query]=0
+PepAlign$match[PepAlign$Ref== PepAlign$Query]=1
+PepAlign$match[PepAlign$Ref!= PepAlign$Query]=0
 
-DNAAlign\$match[DNAAlign\$Ref== DNAAlign\$Query]=1
-DNAAlign\$match[DNAAlign\$Ref!= DNAAlign\$Query]=0
+DNAAlign$match[DNAAlign$Ref== DNAAlign$Query]=1
+DNAAlign$match[DNAAlign$Ref!= DNAAlign$Query]=0
 
-PepAlignSimilarity=sum(PepAlign\$match/length(PepAlign\$match))*100	
-DNAAlignSimilarity=sum(DNAAlign\$match/length(DNAAlign\$match))*100
+PepAlignSimilarity=sum(PepAlign$match/length(PepAlign$match))*100	
+DNAAlignSimilarity=sum(DNAAlign$match/length(DNAAlign$match))*100
 
-startingcodon= min(which(PepAlign\$match==1))
+startingcodon= min(which(PepAlign$match==1))
 
 if (stopsref != stops[1]){classification='possibly_truncated'}else{classification='present'}
 if (startingcodon != 1){classification='late_startcodon'}else{classification='present'}

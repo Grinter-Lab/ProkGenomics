@@ -37,13 +37,15 @@ other:
 *
 **************************************************************************************************************************************************************/
 
+
+
 /**************************************************************************************************************************************************************
  * pipeline input parameters
  **************************************************************************************************************************************************************/
 
 // make people input folder input and prefix of the files only and create shortreads with that
 params.sample_path="$PWD/rawdata/"
-params.sample_name=''
+params.sample_name=null
 params.assembly_type = 'short'
 params.longreads = null
 params.threads = (16)
@@ -65,8 +67,51 @@ params.run_classification="TRUE"
 params.db_gtdb_path="$baseDir//DB/db_gtdb/release214/"
 params.genes_interest=null
 params.percentage=80
-//params.keep_intermediate_files="TRUE"
+params.keep_intermediate_files=true
+params.help=false
 
+/*************************************************************************************************************************************************************
+ *Print
+ ************************************************************************************************************************************************************/
+
+
+if( params.help | params.sample_name == null) {
+
+log.info """
+·········································································································
+:  ██████╗ ██████╗  ██████╗ ██╗  ██╗ ██████╗ ███████╗███╗   ██╗ ██████╗ ███╗   ███╗██╗ ██████╗███████╗  :
+:  ██╔══██╗██╔══██╗██╔═══██╗██║ ██╔╝██╔════╝ ██╔════╝████╗  ██║██╔═══██╗████╗ ████║██║██╔════╝██╔════╝  :
+:  ██████╔╝██████╔╝██║   ██║█████╔╝ ██║  ███╗█████╗  ██╔██╗ ██║██║   ██║██╔████╔██║██║██║     ███████╗  :
+:  ██╔═══╝ ██╔══██╗██║   ██║██╔═██╗ ██║   ██║██╔══╝  ██║╚██╗██║██║   ██║██║╚██╔╝██║██║██║     ╚════██║  :
+:  ██║     ██║  ██║╚██████╔╝██║  ██╗╚██████╔╝███████╗██║ ╚████║╚██████╔╝██║ ╚═╝ ██║██║╚██████╗███████║  :
+:  ╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝     ╚═╝╚═╝ ╚═════╝╚══════╝  :
+·········································································································
+ProkGenomics: Prokaryotic Genomics Pipeline
+Author: Laura Perlaza-Jimenez (PhD) ~ Monash Genomics and Bioinformatics Platform
+Rhys Grinter Laboratory
+============================================================================================================================================
+ERROR: Please provide the minimum options 
+=============================================
+Usage:
+    ProkGenomics --sample_name <sample_name> -profile singularity
+Input:
+--sample_path           	The default path for the reads is the folder rawdata in the working directory. if you have your reads somewhere else you should set this parameter to that path.
+--sample_name           	The sample name is the prefix of your samples files. it doesn't have a default because I don't know your sample names. Please don't use sample names with spaces in them. Best approach is to use the name of the file as it comes from the sequencing facility|
+--assembly_type         	This parameter can be short long or hybrid. The default is 'short'. if you have short reads you don't have to specify this parameter. If you pick the argument long or hybrid the longreads parameter should be specify. For hybrid make sure to give a path for short and long reads. | 
+--longreads     			Path to the long reads. 
+--threads               	Number of threats to use. More threats faster your processing. Make sure you know what is available for you.|
+--outdir                	The results will be in a folder in the working directory with the same sample name and _results ex. 1-77321_results.| |`--assembly`|if you provide a path to an assembly from the reads, the assembly steps will be skipped.|
+--reference 				If you have a reference genome put the path here. This will activate all the comparative genomics steps. This file can be formatted as FASTA or GENBANK. If you provide a GENBANK file your Single Nucleotide Variant file will be annotated (tell you what gene has the mutations).|
+--adapter_file 				To trim your short reads you need to specify what adaptors where used when sequencing. Arguments are  `TruSeq2-SE.fa`, `TruSeq2-PE.fa`, `TruSeq3-PE.fa`. The default is `TruSeq3-PE.fa`.  |
+--genes_interest 			Path to a folder that contains all genes of interest. The correct formatting is ONE gene per file in FASTA format. This folder can have any name, just make sure that it doesn't contain spaces in the name. Do not store additional files in this folder|
+--assembly 					If you already have an assembly you can set this parameter and the pipeline will skip all the steps of assembly|
+--run_classification  		The taxonomical classifications is based on a database of ~90G. This step will take several hours to complete downloading the database. The default argument is `TRUE`. When `--run_classification FALSE` is not set, ProkGenomics will download the database for taxonomical classification and stored in its base-directory. All runs after that will search in this location for the database avoiding the lengthy download again. The download of the database depends on the available disk space, this step will be skipped if there is not enough disk space |
+--db_gtdb_path 				If you already download the gtdbtk database, indicate the path with this option. This parameter is only necessary if you have the gtdbtk database in a different location from where ProkGenomics search by default (ProkGenomics/db_gtdb/)|
+--keep_intermediate_files 	Keep intermediate files, including mapping files|
+--cleanup 					The pipeline cleans-up by defaults. If you are debugging you can set the cleanup to FALSE and keep your work folders. This will allow you to use `-resume` and troubleshoot errors|
+"""
+    exit 0
+}
 
 
 /*************************************************************************************************************************************************************
@@ -322,22 +367,31 @@ Channel
  * Print parameters
  **************************************************************************************************************************************************************/
 
-
-log.info """\
-		ProkGenomics: Prokaryotic Genomics Pipeline
-		Author: Laura Perlaza-Jimenez (PhD)
-		Rhys Grinter Laboratory
-		======================================================================
-		Type of assembly   : ${params.assembly_type}
-		Short reads        : ${shortreads} 
-		Long reads         : ${params.longreads}
-		Assembly           : ${params.assembly}
-		Reference          : ${params.reference}
-		Output directory   : ${params.outdir}
-		Number of threats  : ${params.threads}
-		version            : ${params.version}       
-		======================================================================        
-         """
+//https://www.asciiart.eu/text-to-ascii-art
+//ANSI SHADOW
+log.info """
+·········································································································
+:  ██████╗ ██████╗  ██████╗ ██╗  ██╗ ██████╗ ███████╗███╗   ██╗ ██████╗ ███╗   ███╗██╗ ██████╗███████╗  :
+:  ██╔══██╗██╔══██╗██╔═══██╗██║ ██╔╝██╔════╝ ██╔════╝████╗  ██║██╔═══██╗████╗ ████║██║██╔════╝██╔════╝  :
+:  ██████╔╝██████╔╝██║   ██║█████╔╝ ██║  ███╗█████╗  ██╔██╗ ██║██║   ██║██╔████╔██║██║██║     ███████╗  :
+:  ██╔═══╝ ██╔══██╗██║   ██║██╔═██╗ ██║   ██║██╔══╝  ██║╚██╗██║██║   ██║██║╚██╔╝██║██║██║     ╚════██║  :
+:  ██║     ██║  ██║╚██████╔╝██║  ██╗╚██████╔╝███████╗██║ ╚████║╚██████╔╝██║ ╚═╝ ██║██║╚██████╗███████║  :
+:  ╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝     ╚═╝╚═╝ ╚═════╝╚══════╝  :
+·········································································································
+ProkGenomics: Prokaryotic Genomics Pipeline
+Author: Laura Perlaza-Jimenez (PhD) ~ Monash Genomics and Bioinformatics Platform
+Rhys Grinter Laboratory
+============================================================================================================================================
+	Type of assembly   : ${params.assembly_type}
+	Short reads        : ${shortreads} 
+	Long reads         : ${params.longreads}
+	Assembly           : ${params.assembly}
+	Reference          : ${params.reference}
+	Output directory   : ${params.outdir}
+	Number of threats  : ${params.threads}
+	version            : ${params.version}       
+============================================================================================================================================        
+        """
          .stripIndent()
 
 
@@ -383,10 +437,11 @@ include { get_coverage } from params.modules
 include { qualimap } from params.modules
 
 // Charaterization of genome
-include {prodigal} from params.modules
-include {makeblastdb} from params.modules
-include {blast} from params.modules
-//include {assembly2feature} from params.modules
+include { prodigal } from params.modules
+include { makeblastdb } from params.modules
+include { blast } from params.modules
+include { extract_seq } from params.modules
+include { assembly2gene } from params.modules
 
 
 //Create a final report of outputs
@@ -636,6 +691,49 @@ workflow blast_phage_workflow{
 }
 
 
+workflow assembly2gene_chr_workflow{
+	take:
+		sequence
+		blast_output
+		gene_fasta
+	main:
+		extract_seq(sequence,blast_output,gene_fasta)
+		assembly2gene(extract_seq.out.extract_seqs_align,blast_output,gene_fasta)
+	emit:
+		assembly2gene_align_path=assembly2gene.out.assembly2gene_align_path
+		assembly2gene_table_path=assembly2gene.out.assembly2gene_table_path
+
+
+}
+
+workflow assembly2gene_plasmid_workflow{
+	take:
+		sequence
+		blast_output
+		gene_fasta
+	main:
+		extract_seq(sequence,blast_output,gene_fasta)
+		assembly2gene(extract_seq.out.extract_seqs_align,blast_output,gene_fasta)
+	emit:
+		assembly2gene_align_path=assembly2gene.out.assembly2gene_align_path
+		assembly2gene_table_path=assembly2gene.out.assembly2gene_table_path
+}
+
+
+workflow assembly2gene_phage_workflow{
+	take:
+		sequence
+		blast_output
+		gene_fasta
+	main:
+		extract_seq(sequence,blast_output,gene_fasta)
+		assembly2gene(extract_seq.out.extract_seqs_align,blast_output,gene_fasta)
+	emit:
+		assembly2gene_align_path=assembly2gene.out.assembly2gene_align_path
+		assembly2gene_table_path=assembly2gene.out.assembly2gene_table_path
+}
+
+
 /*
  * Defines the pipeline input parameters (with a default value for each one).
  * Each of the following parameters can be specified as command line options.
@@ -871,9 +969,16 @@ workflow{
 			prodigal_plasmid_workflow(split_assembly_workflow.out.plasmid_path,plasmid)
 			prodigal_phage_workflow(split_assembly_workflow.out.phage_path,phage)
 			
-			blast_chr_workflow(split_assembly_workflow.out.chromosome_path,makeblastdb_workflow.out.blastDB,percentage)
-			blast_plasmid_workflow(split_assembly_workflow.out.plasmid_path,makeblastdb_workflow.out.blastDB,percentage)
-			blast_phage_workflow(split_assembly_workflow.out.phage_path,makeblastdb_workflow.out.blastDB,percentage)
+			blast_chr_workflow(prodigal_chr_workflow.out.prodigal_chr_path,makeblastdb_workflow.out.blastDB,percentage)
+			blast_plasmid_workflow(prodigal_plasmid_workflow.out.prodigal_plasmid_path,makeblastdb_workflow.out.blastDB,percentage)
+			blast_phage_workflow(prodigal_phage_workflow.out.prodigal_phage_path,makeblastdb_workflow.out.blastDB,percentage)
+			
+			assembly2gene_chr_workflow(prodigal_chr_workflow.out.prodigal_chr_path,blast_chr_workflow.out.blast_chr_path,ch_genes_interest)
+			assembly2gene_plasmid_workflow(prodigal_plasmid_workflow.out.prodigal_plasmid_path,blast_plasmid_workflow.out.blast_plasmid_path,ch_genes_interest)
+			assembly2gene_phage_workflow(prodigal_phage_workflow.out.prodigal_phage_path,blast_phage_workflow.out.blast_phage_path,ch_genes_interest)
+
+
+
 		}
 
 
