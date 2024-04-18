@@ -405,6 +405,13 @@ Channel
 	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_qualimap}
 
+
+Channel
+ 	.fromPath("${params.default_empty_path}/myDefaultInputFile_assembly2gene")
+	.map { file -> tuple (file.baseName,file) }
+	.set{myDefaultInputFile_assembly2gene}
+	
+
 /**************************************************************************************************************************************************************
  * Print parameters
  **************************************************************************************************************************************************************/
@@ -423,7 +430,7 @@ log.info """
 ProkGenomics: Prokaryotic Genomics Pipeline
 Author: Laura Perlaza-Jimenez (PhD) ~ Monash Genomics and Bioinformatics Platform
 Rhys Grinter Laboratory
-============================================================================================================================================
+=========================================================================================================
 	Type of assembly   : ${params.assembly_type}
 	Short reads        : ${shortreads} 
 	Long reads         : ${params.longreads}
@@ -432,10 +439,8 @@ Rhys Grinter Laboratory
 	Output directory   : ${params.outdir}
 	Number of threats  : ${params.threads}
 	version            : ${params.version}       
-============================================================================================================================================        
-        """
-         .stripIndent()
-
+==========================================================================================================
+"""
 
 
 /**************************************************************************************************************************************************************
@@ -820,8 +825,8 @@ workflow assembly2gene_phage_workflow{
 
 workflow assembly2gene_table_workflow{
 	take:
-	 tables
-	 main:
+	 	tables
+	main:
 		assembly2gene_table(tables)
 	emit:
 		assembly2gene_summary_path=assembly2gene_table.out.assembly2gene_summary_path
@@ -896,11 +901,7 @@ workflow report_workflow{
 		minimap2_path
 		stats_path
 		gtdb_path
-
-		//stats_path
-       // assembly2gene_table
-       // assembly2gene_aligments
-       // assembly2gene_peptides
+		assembly2gene_table
 	main:	
 	 report(
 		sample_name,
@@ -920,11 +921,8 @@ workflow report_workflow{
 		snippy_path,
 		minimap2_path,
 		stats_path,
-		gtdb_path
-		//
-        //assembly2gene_table,
-        //assembly2gene_aligments,
-        //assembly2gene_peptides
+		gtdb_path,
+		assembly2gene_table
 		)
 		
 	emit:
@@ -1075,20 +1073,21 @@ workflow{
 			table_plasmids=assembly2gene_plasmid_workflow.out.assembly2gene_table_path
 			table_phage=assembly2gene_phage_workflow.out.assembly2gene_table_path
 
+	 		nt_chr=assembly2gene_chr_workflow.out.assembly2gene_nt_path
+			nt_plasmids=assembly2gene_plasmid_workflow.out.assembly2gene_nt_path
+			nt_phage=assembly2gene_phage_workflow.out.assembly2gene_nt_path
 
-				//table_chr
-				//		.concat(table_plasmids,table_phage)
-				//		.flatMap{ file -> tuple (file.baseName,file)}
-				//		.view()
-						//.set{table_seqs}
+			aa_chr=assembly2gene_chr_workflow.out.assembly2gene_aa_path
+			aa_plasmids=assembly2gene_plasmid_workflow.out.assembly2gene_aa_path
+			aa_phage=assembly2gene_phage_workflow.out.assembly2gene_aa_path
 
-			
-			//table_seqs.view()
-			//assembly2gene_table_workflow(table_seqs)
+			// make a list from the tuple, so the process is not input one by one but all at a time
+			table_seqs=table_chr.concat(table_plasmids,table_phage).flatMap().collect()
+			assembly2gene_table_workflow(table_seqs)
+			assembly2gene_table=assembly2gene_table_workflow.out.assembly2gene_summary_path
 
 
-		}
-
+		}else{assembly2gene_table=myDefaultInputFile_assembly2gene}
 
 
 	report_workflow( sample_name,
@@ -1108,11 +1107,9 @@ workflow{
         			 snippy_output,
 					 qualimap_output,
 					 stats_output,
-					 gtdb_output
+					 gtdb_output,
+        			 assembly2gene_table
 
-        				//assembly2gene_table,
-        				//assembly2gene_aligments,
-        				//assembly2gene_peptides
 					)
 
 

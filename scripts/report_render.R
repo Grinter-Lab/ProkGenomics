@@ -24,7 +24,12 @@ parameters<- c( prefix_sample= args[3] ,
                 snippy_path= args[21],
                 minimap2_path= args[22],
                 stats_path=args[23],
-                gtdb_path= args[24])
+                gtdb_path= args[24],
+                assembly2gene_table=args[25],
+                assembly2gene_aligments=args[26],
+                assembly2gene_peptide=args[27]
+                
+            )
 
 
 
@@ -78,6 +83,9 @@ rmarkdown::render( input  = report_template,
                                 minimap2_path=parameters$minimap2_path,
                                 snippy_path=parameters$snippy_path,
                                 stats_path=parameters$stats_path,
+                                assembly2gene_table=parameters$assembly2gene_table,
+                                assembly2gene_aligments=parameters$assembly2gene_aligments,
+                                assembly2gene_peptide=parameters$assembly2gene_peptide,
                                 fastqc_version= fastqc_version,
                                 trimmomatic_version=trimmomatic_version,
                                 unicycler_version=unicycler_version,

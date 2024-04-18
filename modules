@@ -1118,8 +1118,9 @@ process assembly2gene{
     maxRetries 3
 
     publishDir "${params.outdir}/assembly2gene",
-        enable: params.keep_intermediate_files,
-        mode: params.publish_intermediate_files 
+    mode: params.publish_dir_mode 
+
+
 // https://github.com/MonashBioinformaticsPlatform/containers/pkgs/container/containers%2Ffromassembly2feature
   conda (params.enable_conda ? "" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -1135,9 +1136,9 @@ process assembly2gene{
         
 
     output:
-        tuple val ("${prefix0}_${prefix1}"), path ("*_nt_alignment.fasta"), emit: assembly2gene_nt_path
-        tuple val ("${prefix0}_${prefix1}"), path ("*_aa_alignment.fasta"), emit: assembly2gene_aa_path
-        tuple val ("${prefix0}"), val ("${prefix1}"), path ("*alignment_description.txt"), emit: assembly2gene_table_path
+        path ("*_nt_alignment.fasta"), emit: assembly2gene_nt_path
+        path ("*_aa.fasta"), emit: assembly2gene_aa_path
+        path ("*alignment_description.txt"), emit: assembly2gene_table_path
 
     script:
 
@@ -1148,7 +1149,7 @@ process assembly2gene{
                                                     ${align} \\
                                                     ${prefix1} \\
                                                     ${prefix0}_${prefix1}_nt_alignment.fasta \\
-                                                    ${prefix0}_${prefix1}_aa_alignment.fasta \\
+                                                    ${prefix0}_${prefix1}_aa.fasta \\
                                                     ${prefix0}_${prefix1}_alignment_description.txt
 
 
@@ -1157,16 +1158,15 @@ process assembly2gene{
 
 
 process assembly2gene_table{
-        label 'mount_local_scripts'
+    label 'mount_local_scripts'
     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
     maxRetries 3
 
     publishDir "${params.outdir}/assembly2gene",
-        enable: params.keep_intermediate_files,
-        mode: params.publish_intermediate_files 
+        mode: params.publish_dir_mode 
 
     input:
-        tuple val (prefix0),val (prefix1), path (assembly2gene_descriptions)
+        path (assembly2gene_descriptions)
 
     output:
         tuple val ("${params.sample_name}"), path ("${params.sample_name}_alignment_description_summary.txt"), emit: assembly2gene_summary_path
@@ -1175,11 +1175,9 @@ process assembly2gene_table{
     script:
     samplename="${params.sample_name}"
     """
-    echo again
-    echo "${assembly2gene_descriptions}"
-    echo -e 'Gene\tRef\tRef_length_nt\tRef_length_AA\tRef_stopCodon\tGenomeFile\tQuery\tStart\tEnd\tStrand\tQuery_length_nt\tQuery_length_AA\tnt_gaps\tstopCodon\tSNPs\tGAPs\tINSERTION\tlocation\tclassification\tPercentageSimilarityAA\tPercentageSimilarityDNA\tN.copies\n' | cat *alignment_description.txt >|  ${samplename}_alignment_description_summary.txt
-    grop ::
-    
+   
+    echo -e 'Gene\tRef\tRef_length_nt\tRef_length_AA\tRef_stopCodon\tGenomeFile\tQuery\tStart\tEnd\tStrand\tQuery_length_nt\tQuery_length_AA\tnt_gaps\tstopCodon\tSNPs\tGAPs\tINSERTION\tlocation\tclassification\tPercentageSimilarityAA\tPercentageSimilarityDNA\tN.copies\n' | cat *alignment_description.txt > ${samplename}_alignment_description_summary.txt
+
     """
 }
 
@@ -1228,7 +1226,6 @@ process report{
     label 'mount_local_scripts'
 
     publishDir "${params.outdir}",
-         enable: params.keep_intermediate_files,
         mode: params.publish_dir_mode 
         //mode: params.publish_intermediate_files 
 
@@ -1261,14 +1258,12 @@ process report{
         tuple val(prefix14), path (qualimap_path)
         tuple val(prefix16), path (stats_path)
         tuple val(prefix15), path (gtdbtk_summary)
-        //
+        tuple val(prefix), path (assembly2gene_table)
 
-        //tuple val(prefix), path (assembly2gene_table)
-        //tuple val(prefix), path (assembly2gene_aligments)
-        //tuple val(prefix), path (assembly2gene_peptides)
 
     output:
         tuple val(prefix), path("${prefix}_ProkGenomics_report.html"), emit: report_path
+        
 
     script:
         task.cpus="${params.threads}"
@@ -1277,34 +1272,72 @@ process report{
         github="${params.github}"
         report_template="${params.report_template}"
         Rrender="${params.Rrender}"
+        keep_intermediate="${params.keep_intermediate_files}"
 
         """          
-        echo "again"
+       
         echo "Run Rscript in one line in the container"  
-        Rscript /ProkGenomics_scripts/report_render.R  "/ProkGenomics_scripts/report.Rmd"\\
-            ${params.outdir}\\
-            ${prefix} ${version}\\
-            ${github}\\
-            ${params.outdir}/fastqc/${fastqc_html[0]}\\
-            ${params.outdir}/fastqc/${fastqc_html[1]}\\
-            ${params.outdir}/fastqc/${fastqc_trim_html[0]}\\
-            ${params.outdir}/fastqc/${fastqc_trim_html[2]}\\
-            ${params.outdir}/unicycler/${novoassembly_path}\\
-            ${params.outdir}/splitting_assemblies/${chromosome_path}\\
-            ${params.outdir}/splitting_assemblies/${plasmid_path}\\
-            ${params.outdir}/splitting_assemblies/${phage_path}\\
-            ${params.outdir}/checkm/${checkm_tsv}\\
-            ${params.outdir}/prokka/${prokka_denovo_path}\\
-            ${params.outdir}/prokka/${prokka_chr_path}\\
-            ${params.outdir}/prokka/${prokka_plasmid_path}\\
-            ${params.outdir}/pharokka/${pharokka_path}\\
-            ${params.outdir}/plasclass/${plasmid_class}\\
-            ${params.outdir}/checkv/${phage_class}\\
-            ${params.outdir}/snippy/${snippy_path}\\
-            ${params.outdir}/qualimap/${qualimap_path}\\
-            ${params.outdir}/minimap2/${stats_path}\\
-            ${params.outdir}/GTDB/${prefix15}_gtdbtk_classification/${gtdbtk_summary}
-            
+
+
+        if [ ${keep_intermediate} ]
+            then
+                Rscript /ProkGenomics_scripts/report_render.R  "/ProkGenomics_scripts/report.Rmd"\\
+                    ${params.outdir}\\
+                    ${prefix} ${version}\\
+                    ${github}\\
+                    ${params.outdir}/fastqc/${fastqc_html[0]}\\
+                    ${params.outdir}/fastqc/${fastqc_html[1]}\\
+                    ${params.outdir}/fastqc/${fastqc_trim_html[0]}\\
+                    ${params.outdir}/fastqc/${fastqc_trim_html[2]}\\
+                    ${params.outdir}/unicycler/${novoassembly_path}\\
+                    ${params.outdir}/splitting_assemblies/${chromosome_path}\\
+                    ${params.outdir}/splitting_assemblies/${plasmid_path}\\
+                    ${params.outdir}/splitting_assemblies/${phage_path}\\
+                    ${params.outdir}/checkm/${checkm_tsv}\\
+                    ${params.outdir}/prokka/${prokka_denovo_path}\\
+                    ${params.outdir}/prokka/${prokka_chr_path}\\
+                    ${params.outdir}/prokka/${prokka_plasmid_path}\\
+                    ${params.outdir}/pharokka/${pharokka_path}\\
+                    ${params.outdir}/plasclass/${plasmid_class}\\
+                    ${params.outdir}/checkv/${phage_class}\\
+                    ${params.outdir}/snippy/${snippy_path}\\
+                    ${params.outdir}/qualimap/${qualimap_path}\\
+                    ${params.outdir}/minimap2/${stats_path}\\
+                    ${params.outdir}/GTDB/${prefix15}_gtdbtk_classification/${gtdbtk_summary}\\
+                    ${params.outdir}/assembly2gene/${assembly2gene_table}\\
+                    '${params.outdir}/assembly2gene/*nt_alignment.fasta' \\
+                    '${params.outdir}/assembly2gene/*_aa.fasta'
+
+        else
+                Rscript /ProkGenomics_scripts/report_render.R  "/ProkGenomics_scripts/report.Rmd"\\
+                    ${params.outdir}\\
+                    ${prefix} ${version}\\
+                    ${github}\\
+                    ${params.outdir}/${fastqc_html[0]}\\
+                    ${params.outdir}/${fastqc_html[1]}\\
+                    ${params.outdir}/${fastqc_trim_html[0]}\\
+                    ${params.outdir}/${fastqc_trim_html[2]}\\
+                    ${params.outdir}/${novoassembly_path}\\
+                    ${params.outdir}/${chromosome_path}\\
+                    ${params.outdir}/${plasmid_path}\\
+                    ${params.outdir}/${phage_path}\\
+                    ${params.outdir}/${checkm_tsv}\\
+                    ${params.outdir}/${prokka_denovo_path}\\
+                    ${params.outdir}/${prokka_chr_path}\\
+                    ${params.outdir}/${prokka_plasmid_path}\\
+                    ${params.outdir}/${pharokka_path}\\
+                    ${params.outdir}/${plasmid_class}\\
+                    ${params.outdir}/${phage_class}\\
+                    ${params.outdir}/${snippy_path}\\
+                    ${params.outdir}/${qualimap_path}\\
+                    ${params.outdir}/${stats_path}\\
+                    ${params.outdir}/${gtdbtk_summary}\\
+                    ${params.outdir}/assembly2gene/${assembly2gene_table}\\
+                    ${params.outdir}/assembly2gene/*_nt_alignment.fasta \\
+                    ${params.outdir}/assembly2gene/*_aa.fasta
+
+        fi
+
                                   
         """
 

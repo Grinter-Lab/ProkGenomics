@@ -30,7 +30,7 @@ params:
   minimap2_path: "No Found"
   assembly2gene_table: "No Found"
   assembly2gene_aligments: "No Found"
-  assembly2gene_peptides: "No Found"
+  assembly2gene_peptide: "No Found"
   stats_path: 'No Found'
   fastqc_version: 'version'
   trimmomatic_version: 'version'
@@ -160,7 +160,7 @@ cat( "- **Coverage Stats:** ", params$stats_path,"   \n")
 ```{r results='asis'}
 cat( "- **Genes summary table:** ", params$assembly2gene_table,"   \n")
 cat( "- **Genes aligments:** ", params$assembly2gene_aligments,"   \n")
-cat( "- **Peptides:** ", params$assembly2gene_peptides,"   \n")
+cat( "- **Peptides:** ", params$assembly2gene_peptide,"   \n")
 
 ```
 
