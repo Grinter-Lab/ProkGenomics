@@ -89,26 +89,58 @@ log.info """
 ProkGenomics: Prokaryotic Genomics Pipeline
 Author: Laura Perlaza-Jimenez (PhD) ~ Monash Genomics and Bioinformatics Platform
 Rhys Grinter Laboratory
-============================================================================================================================================
+======================================================================================================================================================
 ERROR: Please provide the minimum options 
 =============================================
 Usage:
     ProkGenomics --sample_name <sample_name> -profile singularity
+	
 Input:
---sample_path           	The default path for the reads is the folder rawdata in the working directory. if you have your reads somewhere else you should set this parameter to that path.
---sample_name           	The sample name is the prefix of your samples files. it doesn't have a default because I don't know your sample names. Please don't use sample names with spaces in them. Best approach is to use the name of the file as it comes from the sequencing facility|
---assembly_type         	This parameter can be short long or hybrid. The default is 'short'. if you have short reads you don't have to specify this parameter. If you pick the argument long or hybrid the longreads parameter should be specify. For hybrid make sure to give a path for short and long reads. | 
+--sample_path           	The default path for the reads is the folder rawdata in the working directory. if you have your reads somewhere 
+							else you should set this parameter to that path.
+
+--sample_name           	The sample name is the prefix of your samples files. it doesn't have a default because I don't know your sample 
+							names. Please don't use sample names with spaces in them. Best approach is to use the name of the file as it comes 
+							from the sequencing facility
+
+--assembly_type         	This parameter can be short long or hybrid. The default is 'short'. if you have short reads you don't have to 
+							specify this parameter. If you pick the argument long or hybrid the longreads parameter should be specify. For 
+							hybrid make sure to give a path for short and long reads. 
+
 --longreads     			Path to the long reads. 
---threads               	Number of threats to use. More threats faster your processing. Make sure you know what is available for you.|
---outdir                	The results will be in a folder in the working directory with the same sample name and _results ex. 1-77321_results.| |`--assembly`|if you provide a path to an assembly from the reads, the assembly steps will be skipped.|
---reference 				If you have a reference genome put the path here. This will activate all the comparative genomics steps. This file can be formatted as FASTA or GENBANK. If you provide a GENBANK file your Single Nucleotide Variant file will be annotated (tell you what gene has the mutations).|
---adapter_file 				To trim your short reads you need to specify what adaptors where used when sequencing. Arguments are  `TruSeq2-SE.fa`, `TruSeq2-PE.fa`, `TruSeq3-PE.fa`. The default is `TruSeq3-PE.fa`.  |
---genes_interest 			Path to a folder that contains all genes of interest. The correct formatting is ONE gene per file in FASTA format. This folder can have any name, just make sure that it doesn't contain spaces in the name. Do not store additional files in this folder|
---assembly 					If you already have an assembly you can set this parameter and the pipeline will skip all the steps of assembly|
---run_classification  		The taxonomical classifications is based on a database of ~90G. This step will take several hours to complete downloading the database. The default argument is `TRUE`. When `--run_classification FALSE` is not set, ProkGenomics will download the database for taxonomical classification and stored in its base-directory. All runs after that will search in this location for the database avoiding the lengthy download again. The download of the database depends on the available disk space, this step will be skipped if there is not enough disk space |
---db_gtdb_path 				If you already download the gtdbtk database, indicate the path with this option. This parameter is only necessary if you have the gtdbtk database in a different location from where ProkGenomics search by default (ProkGenomics/db_gtdb/)|
---keep_intermediate_files 	Keep intermediate files, including mapping files|
---cleanup 					The pipeline cleans-up by defaults. If you are debugging you can set the cleanup to FALSE and keep your work folders. This will allow you to use `-resume` and troubleshoot errors|
+
+--threads               	Number of threats to use. More threats faster your processing. Make sure you know what is available for you.
+
+--outdir                	The results will be in a folder in the working directory with the same sample name and _results ex. 1-77321_results.
+
+--assembly					If you provide a path to an assembly from the reads, the assembly steps will be skipped.
+
+--reference 				If you have a reference genome put the path here. This will activate all the comparative genomics steps. This file 
+							can be formatted as FASTA or GENBANK. If you provide a GENBANK file your Single Nucleotide Variant file will be annotated 
+							(tell you what gene has the mutations).
+
+--adapter_file 				To trim your short reads you need to specify what adaptors where used when sequencing. Arguments are  `TruSeq2-SE.fa`,
+							 `TruSeq2-PE.fa`, `TruSeq3-PE.fa`. The default is `TruSeq3-PE.fa`.  
+
+--genes_interest 			Path to a folder that contains all genes of interest. The correct formatting is ONE gene per file in FASTA format. This
+							 folder can have any name, just make sure that it doesn't contain spaces in the name. Do not store additional files in 
+							 this folder.
+
+--assembly 					If you already have an assembly you can set this parameter and the pipeline will skip all the steps of assembly.
+
+--run_classification  		The taxonomical classifications is based on a database of ~90G. This step will take several hours to complete downloading 
+							the database. The default argument is `TRUE`. When `--run_classification FALSE` is not set, ProkGenomics will download 
+							the database for taxonomical classification and stored in its base-directory. All runs after that will search in this 
+							location for the database avoiding the lengthy download again. The download of the database depends on the available 
+							disk space, this step will be skipped if there is not enough disk space.
+
+--db_gtdb_path 				If you already download the gtdbtk database, indicate the path with this option. This parameter is only necessary if 
+							you have the gtdbtk database in a different location from where ProkGenomics search by default (ProkGenomics/DB/db_gtdb/).
+
+--keep_intermediate_files 	Keep intermediate files, including mapping files.
+
+--cleanup 					The pipeline cleans-up by defaults. If you are debugging you can set the cleanup to FALSE and keep your work folders. 
+							This will allow you to use `-resume` and troubleshoot errors.
 """
     exit 0
 }
@@ -196,6 +228,16 @@ if (params.genes_interest){
                       .map { it -> [it.baseName, it] }
 					  .set { ch_genes_interest }
 	}
+
+
+if (params.genes_interest){ 
+	Channel.fromPath( genes_fastas, checkIfExists: true )
+					  .collect()
+                      .map { it -> [it.baseName, it] }
+					  .set { ch_genes_interest_loop }
+	}
+
+
 
 //ch_genes_interest.view()
 
@@ -442,6 +484,7 @@ include { makeblastdb } from params.modules
 include { blast } from params.modules
 include { extract_seq } from params.modules
 include { assembly2gene } from params.modules
+include { assembly2gene_table } from params.modules
 
 
 //Create a final report of outputs
@@ -660,7 +703,13 @@ workflow blast_chr_workflow{
 		gene_id
 		percentage
 	main:
-		blast(sequence,gene_id,percentage)
+		sequence
+			.combine(gene_id)
+			.set{seq_gene}
+
+		////seq_gene.view()
+		blast(seq_gene,percentage)
+	
 	emit:
 		blast_chr_path=blast.out.blast_output
 
@@ -672,7 +721,12 @@ workflow blast_plasmid_workflow{
 		gene_id
 		percentage
 	main:
-		blast(sequence,gene_id,percentage)
+		sequence
+			.combine(gene_id)
+			.set{seq_gene}
+
+		////seq_gene.view()
+		blast(seq_gene,percentage)
 	emit:
 		blast_plasmid_path=blast.out.blast_output
 
@@ -684,11 +738,18 @@ workflow blast_phage_workflow{
 		gene_id
 		percentage
 	main:
-		blast(sequence,gene_id,percentage)
+		sequence
+			.combine(gene_id)
+			.set{seq_gene}
+
+		////seq_gene.view()
+		blast(seq_gene,percentage)
 	emit:
 		blast_phage_path=blast.out.blast_output
 
 }
+
+
 
 
 workflow assembly2gene_chr_workflow{
@@ -697,10 +758,18 @@ workflow assembly2gene_chr_workflow{
 		blast_output
 		gene_fasta
 	main:
-		extract_seq(sequence,blast_output,gene_fasta)
-		assembly2gene(extract_seq.out.extract_seqs_align,blast_output,gene_fasta)
+		sequence
+			.combine(blast_output)
+			.set{seq_gene}
+
+		//seq_gene.view()
+		extract_seq(seq_gene,gene_fasta)
+		//extract_seq.out.extract_seqs_align.view()
+		assembly2gene(extract_seq.out.extract_seqs_align)
+		//assembly2gene.out.assembly2gene_nt_path.view()
 	emit:
-		assembly2gene_align_path=assembly2gene.out.assembly2gene_align_path
+		assembly2gene_nt_path=assembly2gene.out.assembly2gene_nt_path
+		assembly2gene_aa_path=assembly2gene.out.assembly2gene_aa_path
 		assembly2gene_table_path=assembly2gene.out.assembly2gene_table_path
 
 
@@ -712,13 +781,20 @@ workflow assembly2gene_plasmid_workflow{
 		blast_output
 		gene_fasta
 	main:
-		extract_seq(sequence,blast_output,gene_fasta)
-		assembly2gene(extract_seq.out.extract_seqs_align,blast_output,gene_fasta)
+		sequence
+			.combine(blast_output)
+			.set{seq_gene}
+
+		////seq_gene.view()
+		extract_seq(seq_gene,gene_fasta)
+		//extract_seq.out.extract_seqs_align.view()
+		assembly2gene(extract_seq.out.extract_seqs_align)
+		//assembly2gene.out.assembly2gene_nt_path.view()
 	emit:
-		assembly2gene_align_path=assembly2gene.out.assembly2gene_align_path
+		assembly2gene_nt_path=assembly2gene.out.assembly2gene_nt_path
+		assembly2gene_aa_path=assembly2gene.out.assembly2gene_aa_path
 		assembly2gene_table_path=assembly2gene.out.assembly2gene_table_path
 }
-
 
 workflow assembly2gene_phage_workflow{
 	take:
@@ -726,14 +802,34 @@ workflow assembly2gene_phage_workflow{
 		blast_output
 		gene_fasta
 	main:
-		extract_seq(sequence,blast_output,gene_fasta)
-		assembly2gene(extract_seq.out.extract_seqs_align,blast_output,gene_fasta)
+		sequence
+			.combine(blast_output)
+			.set{seq_gene}
+
+		//seq_gene.view()
+		extract_seq(seq_gene,gene_fasta)
+		//extract_seq.out.extract_seqs_align.view()
+		assembly2gene(extract_seq.out.extract_seqs_align)
+		//assembly2gene.out.assembly2gene_nt_path.view()
 	emit:
-		assembly2gene_align_path=assembly2gene.out.assembly2gene_align_path
+		assembly2gene_nt_path=assembly2gene.out.assembly2gene_nt_path
+		assembly2gene_aa_path=assembly2gene.out.assembly2gene_aa_path
 		assembly2gene_table_path=assembly2gene.out.assembly2gene_table_path
+
+}
+
+workflow assembly2gene_table_workflow{
+	take:
+	 tables
+	 main:
+		assembly2gene_table(tables)
+	emit:
+		assembly2gene_summary_path=assembly2gene_table.out.assembly2gene_summary_path
+
 }
 
 
+/// Is going thorugh just one gene!
 /*
  * Defines the pipeline input parameters (with a default value for each one).
  * Each of the following parameters can be specified as command line options.
@@ -899,9 +995,8 @@ workflow{
 
 			if (params.run_classification ){
 				gtdb_workflow(split_assembly_workflow.out.chromosome_path,db_gtdb_download_workflow.out.gtdbtk_db_path,db_gtdb_download_workflow.out.db_diskspace_command)
-				//gtdb_output = gtdb_workflow.out.gtdb_path
-				}else{ gtdb_output = myDefaultInputFile_chr_classification }
 				gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
+				}else{ gtdb_output = myDefaultInputFile_chr_classification }
 
 
 			fastqc_html_output = shortreads_QC_workflow.out.fastqc_html.ifEmpty{ myDefaultInputFile_QC_reads }
@@ -941,15 +1036,14 @@ workflow{
 			extrachr_workflow(ch_in_assembly)
 			split_assembly_workflow(ch_in_assembly,extrachr_workflow.out.plasclass_tsv,extrachr_workflow.out.checkv_summary)
 			prokka_chr_workflow(split_assembly_workflow.out.chromosome_path,chromosome)
-			prokka_plasmids_workflow(split_assembly_workflow.out.plasmid_path,plasmid)
 			prokka_scaffolds_workflow(ch_in_assembly,denovoassembly)
-			pharokka_workflow(split_assembly_workflow.out.phage_path)
+			if(plit_assembly_workflow.out.plasmid_path){prokka_plasmids_workflow(split_assembly_workflow.out.plasmid_path,plasmid)}
+			if(split_assembly_workflow.out.phage_path){pharokka_workflow(split_assembly_workflow.out.phage_path)}
 
 			if (params.run_classification ){
 				gtdb_workflow(split_assembly_workflow.out.chromosome_path,db_gtdb_download_workflow.out.gtdbtk_db_path,db_gtdb_download_workflow.out.db_diskspace_command)
-				//gtdb_output = gtdb_workflow.out.gtdb_path
-				}else{ gtdb_output = myDefaultInputFile_chr_classification }
 				gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
+				}else{ gtdb_output = myDefaultInputFile_chr_classification }
 
 
 			chromosome_path_output = split_assembly_workflow.out.chromosome_path.ifEmpty{ myDefaultInputFile_chr_extraction }
@@ -972,11 +1066,25 @@ workflow{
 			blast_chr_workflow(prodigal_chr_workflow.out.prodigal_chr_path,makeblastdb_workflow.out.blastDB,percentage)
 			blast_plasmid_workflow(prodigal_plasmid_workflow.out.prodigal_plasmid_path,makeblastdb_workflow.out.blastDB,percentage)
 			blast_phage_workflow(prodigal_phage_workflow.out.prodigal_phage_path,makeblastdb_workflow.out.blastDB,percentage)
-			
+
 			assembly2gene_chr_workflow(prodigal_chr_workflow.out.prodigal_chr_path,blast_chr_workflow.out.blast_chr_path,ch_genes_interest)
 			assembly2gene_plasmid_workflow(prodigal_plasmid_workflow.out.prodigal_plasmid_path,blast_plasmid_workflow.out.blast_plasmid_path,ch_genes_interest)
-			assembly2gene_phage_workflow(prodigal_phage_workflow.out.prodigal_phage_path,blast_phage_workflow.out.blast_phage_path,ch_genes_interest)
+			assembly2gene_phage_workflow(prodigal_phage_workflow.out.prodigal_phage_path,blast_phage_workflow.out.blast_phage_path,ch_genes_interest )
+		
+	 		table_chr=assembly2gene_chr_workflow.out.assembly2gene_table_path
+			table_plasmids=assembly2gene_plasmid_workflow.out.assembly2gene_table_path
+			table_phage=assembly2gene_phage_workflow.out.assembly2gene_table_path
 
+
+				//table_chr
+				//		.concat(table_plasmids,table_phage)
+				//		.flatMap{ file -> tuple (file.baseName,file)}
+				//		.view()
+						//.set{table_seqs}
+
+			
+			//table_seqs.view()
+			//assembly2gene_table_workflow(table_seqs)
 
 
 		}
@@ -1006,6 +1114,8 @@ workflow{
         				//assembly2gene_aligments,
         				//assembly2gene_peptides
 					)
+
+
 
 /*	
 	multiqc_workflow( sample_name,

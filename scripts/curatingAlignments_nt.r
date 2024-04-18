@@ -24,7 +24,7 @@ options(stringsAsFactors = FALSE)
 ## read arguments
 ########################################################################################################################################################################
 
-
+                                                                                                                                                                                             
 args = commandArgs(trailingOnly=TRUE)
 file=args[1]
 genename=args[2]
@@ -131,21 +131,21 @@ findORFsinSeq <- function(sequence){
 seq2Fasta <- function(seq,name,filename){
   						sink(filename,append=TRUE)
     					cat(paste0('>', name),file=filename,append=TRUE)
-    					cat('\\n',file=filename,append=TRUE)
+    					cat('\n',file=filename,append=TRUE)
     					the.sequence <- toString(seq)
     					the.sequence=gsub('N','-',the.sequence)
     					cat(the.sequence,file=filename,append=TRUE)
-    					cat('\\n',file=filename,append=TRUE)  
+    					cat('\n',file=filename,append=TRUE)  
   						sink(NULL)
 						}
 
 seqAA2Fasta <- function(seq,name,filename){
   						sink(filename,append=TRUE)
     					cat(paste0('>', name),file=filename,append=TRUE)
-    					cat('\\n',file=filename,append=TRUE)
+    					cat('\n',file=filename,append=TRUE)
     					the.sequence <- toString(seq)
     					cat(the.sequence,file=filename,append=TRUE)
-    					cat('\\n',file=filename,append=TRUE)  
+    					cat('\n',file=filename,append=TRUE)  
   						sink(NULL)
 						}
 
@@ -797,41 +797,41 @@ names=mySequences@ranges@NAMES
 
 if(Ncopies==1){
 
-myAlignmentAA=invisible(msa(c(AAStringSet(Seq_trlref),AAStringSet(Seq_trl))))
-RefAA=strsplit(toString(  toString(unmasked(myAlignmentAA)[[1]] ) ),'')
-SeqAA=strsplit(toString(  toString(unmasked(myAlignmentAA)[[2]] ) ),'')
-PepAlign=data.frame(Ref=unlist(RefAA),Query=unlist(SeqAA))
+	myAlignmentAA=invisible(msa(c(AAStringSet(Seq_trlref),AAStringSet(Seq_trl))))
+	RefAA=strsplit(toString(  toString(unmasked(myAlignmentAA)[[1]] ) ),'')
+	SeqAA=strsplit(toString(  toString(unmasked(myAlignmentAA)[[2]] ) ),'')
+	PepAlign=data.frame(Ref=unlist(RefAA),Query=unlist(SeqAA))
+	
+	
+	PepAlign$match[PepAlign$Ref== PepAlign$Query]=1
+	PepAlign$match[PepAlign$Ref!= PepAlign$Query]=0
+
+	myAlignmentDNA=invisible(msa(c(DNAStringSet(Seqref),DNAStringSet(Seq))))
+	RefDNA=strsplit(toString(  toString(unmasked(myAlignmentDNA)[[1]] ) ),'')
+	SeqDNA=strsplit(toString(  toString(unmasked(myAlignmentDNA)[[2]] ) ),'')
+	DNAAlign=data.frame(Ref=unlist(RefDNA),Query=unlist(SeqDNA))
  
  
-PepAlign$match[PepAlign$Ref== PepAlign$Query]=1
-PepAlign$match[PepAlign$Ref!= PepAlign$Query]=0
+	PepAlign$match[PepAlign$Ref== PepAlign$Query]=1
+	PepAlign$match[PepAlign$Ref!= PepAlign$Query]=0
 
-myAlignmentDNA=invisible(msa(c(DNAStringSet(Seqref),DNAStringSet(Seq))))
-RefDNA=strsplit(toString(  toString(unmasked(myAlignmentDNA)[[1]] ) ),'')
-SeqDNA=strsplit(toString(  toString(unmasked(myAlignmentDNA)[[2]] ) ),'')
-DNAAlign=data.frame(Ref=unlist(RefDNA),Query=unlist(SeqDNA))
- 
- 
-PepAlign$match[PepAlign$Ref== PepAlign$Query]=1
-PepAlign$match[PepAlign$Ref!= PepAlign$Query]=0
+	DNAAlign$match[DNAAlign$Ref== DNAAlign$Query]=1
+	DNAAlign$match[DNAAlign$Ref!= DNAAlign$Query]=0
 
-DNAAlign$match[DNAAlign$Ref== DNAAlign$Query]=1
-DNAAlign$match[DNAAlign$Ref!= DNAAlign$Query]=0
+	PepAlignSimilarity=sum(PepAlign$match/length(PepAlign$match))*100	
+	DNAAlignSimilarity=sum(DNAAlign$match/length(DNAAlign$match))*100
 
-PepAlignSimilarity=sum(PepAlign$match/length(PepAlign$match))*100	
-DNAAlignSimilarity=sum(DNAAlign$match/length(DNAAlign$match))*100
-
-query=strsplit(names[2],'###')[[1]][1]
-start=strsplit(names[2],'###')[[1]][2]
-end=strsplit(names[2],'###')[[1]][3]
-strand=strsplit(names[2],'###')[[1]][4]
-GenomeFile=strsplit(names[2],':')[[1]][2]
+	query=strsplit(names[2],'###')[[1]][1]
+	start=strsplit(names[2],'###')[[1]][2]
+	end=strsplit(names[2],'###')[[1]][3]
+	strand=strsplit(names[2],'###')[[1]][4]
+	GenomeFile=strsplit(names[2],':')[[1]][2]
 
 
-startingcodon= min(which(PepAlign$match==1))
+	startingcodon= min(which(PepAlign$match==1))
 
-if (stopsref != stops[1]){classification='possibly_truncated'}else{classification='present'}
-if (startingcodon != 1){classification='late_startcodon'}else{classification='possibly_truncated'}
+	if (stopsref != stops[1]){classification='possibly_truncated'}else{classification='present'}
+	if (startingcodon != 1){classification='late_startcodon'}else{classification='possibly_truncated'}
 
 
    		metadatasummary=data.frame(
@@ -858,7 +858,7 @@ if (startingcodon != 1){classification='late_startcodon'}else{classification='po
  					DNAAlignSimilarity=DNAAlignSimilarity,
  					Ncopies=Ncopies)
 
-SeqQueryGenomeName=paste(GenomeFile,query,sep='::')
+			SeqQueryGenomeName=paste(GenomeFile,query,sep='::')
       		seq2Fasta(Seq,SeqQueryGenomeName,out1)
        		seqAA2Fasta(Seq_trl,SeqQueryGenomeName, out2)
   write.table(metadatasummary,file=out3,append=TRUE,quote=FALSE,row.names=FALSE,col.names=FALSE,sep='\t')
@@ -868,66 +868,66 @@ count=1
 
 if(Ncopies>1){
 
-names=names[-1]
+	names=names[-1]
 
-for (i in names){
+		for (i in names){
 
-count=count+1
+			count=count+1
 
-query=strsplit(i,'###')[[1]][1]
-start=strsplit(i,'###')[[1]][2]
-end=strsplit(i,'###')[[1]][3]
-strand=strsplit(i,'###')[[1]][4]
-GenomeFile=strsplit(names[1],':')[[1]][2]
+			query=strsplit(i,'###')[[1]][1]
+			start=strsplit(i,'###')[[1]][2]
+			end=strsplit(i,'###')[[1]][3]
+			strand=strsplit(i,'###')[[1]][4]
+			GenomeFile=strsplit(names[1],':')[[1]][2]
 
-SeqName=xx[count]
-ff=gsub('\"','',SeqName)
-ff=gsub('\\n','',ff)
-ff=gsub(', ','',ff)
-ff=gsub('c\\\\(','',ff)
-ff=gsub('\\\\)','',ff)
+			SeqName=xx[count]
+			ff=gsub('\"','',SeqName)
+			ff=gsub('\n','',ff)
+			ff=gsub(', ','',ff)
+			ff=gsub('c\\\\(','',ff)
+			ff=gsub('\\\\)','',ff)
 
-SeqName=ff
-x=table(strsplit(SeqName,''))
-xORF=findORFsinSeq(SeqName)
-bestORF=xORF[ xORF$orflengths==max(xORF$orflengths),]
-query_trans=Biostrings::translate(DNAString(substring(SeqName, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
-Seq_trl=query_trans
-length_Seqtrl=length(Seq_trl)
-Seq_trl_string=strsplit(toString(Seq_trl),'')	
-stops=which( Seq_trl_string[[1]]=='*')
+			SeqName=ff
+			x=table(strsplit(SeqName,''))
+			xORF=findORFsinSeq(SeqName)
+			bestORF=xORF[ xORF$orflengths==max(xORF$orflengths),]
+			query_trans=Biostrings::translate(DNAString(substring(SeqName, bestORF$orfstart,bestORF$orfstops)),if.fuzzy.codon='solve')
+			Seq_trl=query_trans
+			length_Seqtrl=length(Seq_trl)
+			Seq_trl_string=strsplit(toString(Seq_trl),'')	
+			stops=which( Seq_trl_string[[1]]=='*')
 
 
-myAlignmentAA=invisible(msa(c(AAStringSet(Seq_trlref),AAStringSet(Seq_trl))))
-RefAA=strsplit(toString(  toString(unmasked(myAlignmentAA)[[1]] ) ),'')
-SeqAA=strsplit(toString(  toString(unmasked(myAlignmentAA)[[2]] ) ),'')
-PepAlign=data.frame(Ref=unlist(RefAA),Query=unlist(SeqAA))
- 
- 
-PepAlign$match[PepAlign$Ref== PepAlign$Query]=1
-PepAlign$match[PepAlign$Ref!= PepAlign$Query]=0
+			myAlignmentAA=invisible(msa(c(AAStringSet(Seq_trlref),AAStringSet(Seq_trl))))
+			RefAA=strsplit(toString(  toString(unmasked(myAlignmentAA)[[1]] ) ),'')
+			SeqAA=strsplit(toString(  toString(unmasked(myAlignmentAA)[[2]] ) ),'')
+			PepAlign=data.frame(Ref=unlist(RefAA),Query=unlist(SeqAA))
+			
+			
+			PepAlign$match[PepAlign$Ref== PepAlign$Query]=1
+			PepAlign$match[PepAlign$Ref!= PepAlign$Query]=0
 
-myAlignmentDNA=invisible(msa(c(DNAStringSet(Seqref),DNAStringSet(SeqName))))
-RefDNA=strsplit(toString(  toString(unmasked(myAlignmentDNA)[[1]] ) ),'')
-SeqDNA=strsplit(toString(  toString(unmasked(myAlignmentDNA)[[2]] ) ),'')
-DNAAlign=data.frame(Ref=unlist(RefDNA),Query=unlist(SeqDNA))
- 
- 
-PepAlign$match[PepAlign$Ref== PepAlign$Query]=1
-PepAlign$match[PepAlign$Ref!= PepAlign$Query]=0
+			myAlignmentDNA=invisible(msa(c(DNAStringSet(Seqref),DNAStringSet(SeqName))))
+			RefDNA=strsplit(toString(  toString(unmasked(myAlignmentDNA)[[1]] ) ),'')
+			SeqDNA=strsplit(toString(  toString(unmasked(myAlignmentDNA)[[2]] ) ),'')
+			DNAAlign=data.frame(Ref=unlist(RefDNA),Query=unlist(SeqDNA))
+			
+			
+			PepAlign$match[PepAlign$Ref== PepAlign$Query]=1
+			PepAlign$match[PepAlign$Ref!= PepAlign$Query]=0
 
-DNAAlign$match[DNAAlign$Ref== DNAAlign$Query]=1
-DNAAlign$match[DNAAlign$Ref!= DNAAlign$Query]=0
+			DNAAlign$match[DNAAlign$Ref== DNAAlign$Query]=1
+			DNAAlign$match[DNAAlign$Ref!= DNAAlign$Query]=0
 
-PepAlignSimilarity=sum(PepAlign$match/length(PepAlign$match))*100	
-DNAAlignSimilarity=sum(DNAAlign$match/length(DNAAlign$match))*100
+			PepAlignSimilarity=sum(PepAlign$match/length(PepAlign$match))*100	
+			DNAAlignSimilarity=sum(DNAAlign$match/length(DNAAlign$match))*100
 
-startingcodon= min(which(PepAlign$match==1))
+			startingcodon= min(which(PepAlign$match==1))
 
-if (stopsref != stops[1]){classification='possibly_truncated'}else{classification='present'}
-if (startingcodon != 1){classification='late_startcodon'}else{classification='present'}
+			if (stopsref != stops[1]){classification='possibly_truncated'}else{classification='present'}
+			if (startingcodon != 1){classification='late_startcodon'}else{classification='present'}
 
-  		metadatasummary=data.frame(
+  			metadatasummary=data.frame(
       		gene=genename,
       			Ref=paste('\"',ref,'\"',sep=''),
  					Ref_length_nt=sum(xref),
@@ -951,14 +951,11 @@ if (startingcodon != 1){classification='late_startcodon'}else{classification='pr
  					DNAAlignSimilarity=DNAAlignSimilarity,
  						Ncopies=Ncopies)
 
-SeqQueryGenomeName=paste(GenomeFile,query,sep='::')
+			SeqQueryGenomeName=paste(GenomeFile,query,sep='::')
       		seq2Fasta(SeqName,SeqQueryGenomeName,out1)
        		seqAA2Fasta(Seq_trl,SeqQueryGenomeName, out2)
-  write.table(metadatasummary,file=out3,append=TRUE,quote=FALSE,row.names=FALSE,col.names=FALSE,sep='\t')
+  			write.table(metadatasummary,file=out3,append=TRUE,quote=FALSE,row.names=FALSE,col.names=FALSE,sep='\t')
+		}
+
 }
 
-
-#print (genename)
-#print (out3)
-}
-";

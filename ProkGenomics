@@ -1,5 +1,6 @@
 #!/bin/bash
 
 program_location=`echo "$PATH" | sed -e 's/:/\n/g'| grep "ProkGenomics"`
+
 #echo $program_location
 nextflow run $program_location/main.nf $@
