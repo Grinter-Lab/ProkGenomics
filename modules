@@ -15,7 +15,7 @@ process fastqc {
     maxRetries 3
 
 	publishDir "${params.outdir}/fastqc",
-        enable: params.keep_intermediate_files,
+        enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 	
 	//use container
@@ -61,7 +61,7 @@ process trimmomatic {
     maxRetries 3
 
 	publishDir "${params.outdir}/trimmomatic",
-        enable: params.keep_intermediate_files,
+        enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
 	//use container
@@ -122,7 +122,7 @@ process unicycler_short {
     maxRetries 3
 
 	publishDir "${params.outdir}/unicycler",
-        enable: params.keep_intermediate_files,
+        enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
 	//use container
@@ -169,7 +169,7 @@ process busco {
 
 
 	publishDir "${params.outdir}/busco",
-        enable: params.keep_intermediate_files,
+        enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
 	//use container
@@ -211,7 +211,7 @@ process checkm {
     maxRetries 3
 
 	publishDir "${params.outdir}/checkm",
-        enable: params.keep_intermediate_files,
+        enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
 //use container
@@ -294,7 +294,7 @@ process checkv {
     maxRetries 3
 
 	publishDir "${params.outdir}/checkv",
-         enable: params.keep_intermediate_files,
+         enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
 //use container
@@ -349,7 +349,7 @@ process plasclass {
     //errorStrategy 'ignore'
 
 	publishDir "${params.outdir}/plasclass",
-         enable: params.keep_intermediate_files,
+         enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
     conda (params.enable_conda ? "python=3.7 bioconda::plasclass": null)
@@ -396,7 +396,7 @@ process prokka {
     maxRetries 3
 
 	publishDir "${params.outdir}/prokka",
-         enable: params.keep_intermediate_files,
+         enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
 //use container
@@ -479,7 +479,7 @@ process pharokka {
     maxRetries 3
 
 	publishDir "${params.outdir}/pharokka",
-         enable: params.keep_intermediate_files,
+         enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
 //use container
@@ -538,7 +538,7 @@ process snippy {
     maxRetries 3
 
 	publishDir "${params.outdir}/snippy",
-         enable: params.keep_intermediate_files,
+         enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
 //use container
@@ -642,7 +642,7 @@ process gtdb {
     label 'mount_local_scripts'
     
 	publishDir "${params.outdir}/GTDB",
-         enable: params.keep_intermediate_files,
+         enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
     conda (params.enable_conda ? "bioconda::gtdbtk" : null)
@@ -710,7 +710,7 @@ process gtdb {
         
 process split_assembly {
 	publishDir "${params.outdir}/splitting_assemblies",
-         enable: params.keep_intermediate_files,
+         enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "bioconda::samtools" : null)
@@ -773,7 +773,7 @@ process prodigal {
     maxRetries 3
 
   	publishDir "${params.outdir}/prodigal",
-         enable: params.keep_intermediate_files,
+         enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "bioconda::prodigal" : null)
@@ -828,7 +828,7 @@ process reference_format {
     maxRetries 3
 
   	publishDir "${params.outdir}/minimap2",
-         enable: params.keep_intermediate_files,
+         enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "anaconda::biopython" : null)
@@ -874,7 +874,7 @@ process minimap2 {
     maxRetries 3
 
 	publishDir "${params.outdir}/minimap2",
-         enable: params.keep_intermediate_files,
+         enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
 //use container
@@ -919,7 +919,7 @@ process get_coverage {
     maxRetries 3
 	
     publishDir "${params.outdir}/minimap2",
-         enable: params.keep_intermediate_files,
+         enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "bioconda::samtools" : null)
@@ -962,7 +962,7 @@ process qualimap {
     maxRetries 3
 
     publishDir "${params.outdir}/qualimap",
-         enable: params.keep_intermediate_files,
+         enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "bioconda::qualimap" : null)
@@ -1039,7 +1039,7 @@ process blast{
 
     
     publishDir "${params.outdir}/blast",
-         enable: params.keep_intermediate_files,
+         enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "bioconda::blast" : null)
@@ -1078,7 +1078,7 @@ process blast{
 
 process extract_seq {
 	publishDir "${params.outdir}/assembly2gene",
-         enable: params.keep_intermediate_files,
+         enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
   conda (params.enable_conda ? "bioconda::samtools" : null)
@@ -1355,9 +1355,8 @@ process multiqc {
     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
     maxRetries 3
 
-    publishDir "${params.outdir}/multiqc",
-         enable: params.keep_intermediate_files,
-        mode: params.publish_intermediate_files 
+    publishDir "${params.outdir}",
+    mode: params.publish_dir_mode 
 
   conda (params.enable_conda ? "bioconda::multiqc" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -1365,14 +1364,6 @@ process multiqc {
     } else {
         container "quay.io/biocontainers/multiqc"
     }
-
-    input:
-        tuple val(prefix), path (folder_fastqc)
-        tuple val(prefix), path (folder_mapping)
- 
-    output:
-        tuple val (prefix), path("multiqc_report.html"), emit: multiqc_report
-        tuple val (prefix), path("multiqc_data/"), emit: multiqc_data
       
     """
     multiqc .
@@ -1393,7 +1384,7 @@ process cleanup{
 
     script:
     """
-    echo "rm -rf $PWD/work/*"
-    echo "rm -rf $PWD/.nextflow.log*"
+    rm -rf $PWD/work
+    rm -rf $PWD/.nextflow.log*
     """
 }

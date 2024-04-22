@@ -67,7 +67,7 @@ params.run_classification="TRUE"
 params.db_gtdb_path="$baseDir//DB/db_gtdb/release214/"
 params.genes_interest=null
 params.percentage=80
-params.keep_intermediate_files=true
+params.keep_intermediate_files=false
 params.help=false
 
 /*************************************************************************************************************************************************************
@@ -941,13 +941,7 @@ workflow multiqc_workflow{
 
 */
 
-workflow cleanup_workflow{
-	take:
-		report
-	main:
-		cleanup(report)
 
-}
 
 
 
@@ -1142,7 +1136,7 @@ workflow{
         				//assembly2gene_peptides
 					)
 */
-	cleanup_workflow(report_workflow.out.final_report)
+	
 
 }
 
@@ -1150,6 +1144,7 @@ workflow{
 
 workflow.onComplete { 
 	println ( workflow.success ? "\nDone! see the report in ${params.outdir} for more details \n" : "Oops .. something went wrong" )
+	cleanup(report_workflow.out.final_report)
 }
 
 
