@@ -831,11 +831,12 @@ process reference_format {
          enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 
 
-  conda (params.enable_conda ? "anaconda::biopython" : null)
+  conda (params.enable_conda ? "anaconda::perl" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
-        container "https://depot.galaxyproject.org/singularity/biopython%3A1.81"
+  container "https://depot.galaxyproject.org/singularity/perl%3A5.32"
+  //      container "https://depot.galaxyproject.org/singularity/biopython%3A1.81"
     } else {
-        container "quay.io/biocontainers/biopython"
+        container "quay.io/biocontainers/perl"
     }
 
    input:
@@ -854,8 +855,12 @@ process reference_format {
         checkformat=\$(head -1 ${reference_genome}| grep "LOCUS"| wc -l)
         if [ \$checkformat -eq 0 ]; then FILEFORMAT='fasta' ; else FILEFORMAT='gbk'; fi
 
-        if [ \$FILEFORMAT == 'gbk' ]; then python -c "from Bio import SeqIO; SeqIO.convert(\'${reference_genome}\', 'genbank',\'${prefix_genome}_ready.fasta\', 'fasta')"; else cp ${reference_genome} ${prefix_genome}_ready.fasta; fi
+#        if [ \$FILEFORMAT == 'gbk' ]; then python -c "from Bio import SeqIO; SeqIO.convert(\'${reference_genome}\', 'genbank',\'${prefix_genome}_ready.fasta\', 'fasta')"; else cp ${reference_genome} ${prefix_genome}_ready.fasta; fi
         
+         chmod a+x /ProkGenomics_scripts/any2fasta
+         
+          if [ \$FILEFORMAT == 'gbk' ]; then  /ProkGenomics_scripts/any2fasta ${reference_genome} > ${prefix_genome}_ready.fasta; else cp ${reference_genome} ${prefix_genome}_ready.fasta; fi
+
         """
 }
 
@@ -1263,6 +1268,24 @@ process report{
 
     output:
         tuple val(prefix), path("${prefix}_ProkGenomics_report.html"), emit: report_path
+        tuple val(prefix0), path (fastqc_html)
+        tuple val(prefix1), path (fastqc_trim_html)
+        tuple val(prefix2), path (novoassembly_path)
+        tuple val(prefix3), path (chromosome_path)
+        tuple val(prefix4), path (plasmid_path)
+        tuple val(prefix5), path (phage_path)
+        tuple val(prefix6), path (checkm_tsv)
+        tuple val(prefix7), path (prokka_denovo_path)
+        tuple val(prefix8), path (prokka_chr_path)
+        tuple val(prefix9), path (prokka_plasmid_path)
+        tuple val(prefix10), path (pharokka_path)
+        tuple val(prefix11), path (plasmid_class)
+        tuple val(prefix12), path (phage_class)
+        tuple val(prefix13), path (snippy_path)
+        tuple val(prefix14), path (qualimap_path)
+        tuple val(prefix16), path (stats_path)
+        tuple val(prefix15), path (gtdbtk_summary)
+        tuple val(prefix), path (assembly2gene_table)
         
 
     script:
@@ -1279,7 +1302,7 @@ process report{
         echo "Run Rscript in one line in the container"  
 
 
-        if [ ${keep_intermediate} ]
+        if [ ${keep_intermediate} = true ]
             then
                 Rscript /ProkGenomics_scripts/report_render.R  "/ProkGenomics_scripts/report.Rmd"\\
                     ${params.outdir}\\

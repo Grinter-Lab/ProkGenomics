@@ -1142,9 +1142,9 @@ workflow{
 
 
 
-workflow.onComplete { 
+workflow.onComplete {
+	cleanup(final_report)
 	println ( workflow.success ? "\nDone! see the report in ${params.outdir} for more details \n" : "Oops .. something went wrong" )
-	cleanup(report_workflow.out.final_report)
 }
 
 
