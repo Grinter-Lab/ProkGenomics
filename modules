@@ -1411,6 +1411,9 @@ process cleanup{
     input:
     tuple val(prefix), path(report_path)  //here I gave the input from last process.
 
+    when:
+    cleanup
+
     script:
     """
     rm -rf $PWD/work

@@ -69,6 +69,7 @@ params.genes_interest=null
 params.percentage=80
 params.keep_intermediate_files=false
 params.help=false
+params.cleanup=true
 
 /*************************************************************************************************************************************************************
  *Print
@@ -150,6 +151,9 @@ Input:
  * Channels
  read parameters in the command line 
  ************************************************************************************************************************************************************/
+
+	Channel.value( params.cleanup )
+		.set{ cleanup}
 
 	Channel.value( params.run_classification )
 		.set{ run_classification}
@@ -1137,13 +1141,13 @@ workflow{
 					)
 */
 	
+cleanup(report_workflow.out.final_report)
 
 }
 
 
-
 workflow.onComplete {
-	cleanup(final_report)
+	
 	println ( workflow.success ? "\nDone! see the report in ${params.outdir} for more details \n" : "Oops .. something went wrong" )
 }
 
