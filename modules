@@ -757,8 +757,10 @@ process split_assembly {
         #extract contigs
         if [ -s chromosome_contigs.txt ]; then xargs samtools faidx ${scaffolds_path} < chromosome_contigs.txt > ${prefix}_chromosome.fasta; fi
         if [ -s plasmid_contigs.txt ]; then xargs samtools faidx ${scaffolds_path} < plasmid_contigs.txt > ${prefix}_plasmid.fasta; fi
-        if [ -s phage_contigs.txt ]; then xargs samtools faidx ${scaffolds_path} < phage_contigs.txt > ${prefix}_tmp_phage.fasta; fi
-        if [ -s ${prefix}_tmp_phage.fasta ]; then awk 'BEGIN { FS=OFS=" " } /^>/ { print \$1"_phage"; next }1' ${prefix}_tmp_phage.fasta > ${prefix}_phage.fasta; fi
+        if [ -s phage_contigs.txt ]; then
+         xargs samtools faidx ${scaffolds_path} < phage_contigs.txt > ${prefix}_tmp_phage.fasta 
+         awk 'BEGIN { FS=OFS=" " } /^>/ { print \$1"_phage"; next }1' ${prefix}_tmp_phage.fasta > ${prefix}_phage.fasta;
+        fi
 
         ln -s ${scaffolds_path} ${prefix}_de_novoassembly.fasta
 
