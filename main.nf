@@ -622,8 +622,8 @@ workflow comparative_genomics_workflow{
 	    ch_in_reference
 		trimmed_reads
 	main:
-		snippy(ch_in_reference,trimmed_reads)
 		reference_format(ch_in_reference)
+		snippy(ch_in_reference,reference_format.out.reference_genome_ready,trimmed_reads)
 		minimap2(reference_format.out.reference_genome_ready,trimmed_reads)
 		get_coverage(minimap2.out.minimap2_path)
 		qualimap(get_coverage.out.sorted_path)

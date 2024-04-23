@@ -551,6 +551,7 @@ process snippy {
 
     input:
         tuple val(prefix_genome), path (reference_genome)
+        tuple val(prefix_genome), path (reference_genome_ready)
         tuple val(prefix), path (trimmed_reads)
 
     output:
@@ -565,9 +566,12 @@ process snippy {
 
     """
     echo "again"
-    cmd="snippy --cpus ${task.cpus} --outdir ${prefix}_${prefix_genome}_snippy --ref ${reference_genome} --R1 ${trimmed_reads[0]} --R2 ${trimmed_reads[2]}"
 
-    \${cmd}
+    ## add fasta reference
+    cmd="snippy --cpus ${task.cpus} --outdir ${prefix}_${prefix_genome}_snippy --ref ${reference_genome} --R1 ${trimmed_reads[0]} --R2 ${trimmed_reads[2]} --force"
+    cmd_fasta="snippy --cpus ${task.cpus} --outdir ${prefix}_${prefix_genome}_snippy --ref ${reference_genome_ready} --R1 ${trimmed_reads[0]} --R2 ${trimmed_reads[2]} --force"
+
+    \${cmd} || \$cmd_fasta
 
     echo "version" >>  ${software}
     snippy --version >> ${software}
