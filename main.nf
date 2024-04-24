@@ -63,7 +63,7 @@ params.logo="$baseDir/scripts/Logo.svg"
 params.github="https://github.com/Grinter-Lab/ProkGenomics"
 params.default_empty_path="$baseDir/scripts/NO_APPLY/"
 params.Rrender="$baseDir/scripts/report_render.R"
-params.run_classification="TRUE"
+params.run_classification=true
 params.db_gtdb_path="$baseDir//DB/db_gtdb/release214/"
 params.genes_interest=null
 params.percentage=80
@@ -501,7 +501,7 @@ include { multiqc } from params.modules
 include { report } from params.modules
 
 //Clean up
-include { cleanup} from params.modules
+include { cleanup_end } from params.modules
 
 /**************************************************************************************************************************************************************
  * workflows subroutine
@@ -512,6 +512,7 @@ workflow shortreads_QC_workflow{
 			fastqc(ch_in_shortreads)
 		emit:
 			fastqc_html=fastqc.out.html
+			fastqc_zip=fastqc.out.zip
 	}
 
 workflow shortreads_trim_workflow{
@@ -519,6 +520,7 @@ workflow shortreads_trim_workflow{
 		fastqc(trimmomatic.out.trimmed_reads)
 	emit:
 		fastqc_trim_html=fastqc.out.html
+		fastqc_trim_zip=fastqc.out.zip
 		trimmed_reads=trimmomatic.out.trimmed_reads
 }
 
@@ -890,6 +892,8 @@ workflow report_workflow{
 		sample_name
 		fastqc_html 
 		fastqc_trim_html 
+		fastqc_zip
+		fastqc_trim_zip
     	novoassembly_path
        	chromosome_path
         plasmid_path
@@ -911,6 +915,8 @@ workflow report_workflow{
 		sample_name,
 		fastqc_html,
 		fastqc_trim_html,
+		fastqc_zip,
+		fastqc_trim_zip,
         novoassembly_path,
         chromosome_path,
         plasmid_path,
@@ -997,6 +1003,8 @@ workflow{
 
 			fastqc_html_output = shortreads_QC_workflow.out.fastqc_html.ifEmpty{ myDefaultInputFile_QC_reads }
 			fastqc_trim_html_output = shortreads_trim_workflow.out.fastqc_trim_html.ifEmpty{myDefaultInputFile_QC_trimmed_reads }
+			fastqc_zip_output = shortreads_QC_workflow.out.fastqc_zip.ifEmpty{ myDefaultInputFile_QC_reads }
+			fastqc_trim_zip_output = shortreads_trim_workflow.out.fastqc_trim_zip.ifEmpty{myDefaultInputFile_QC_trimmed_reads }
 			scaffolds_output = shortreads_assembly_workflow.out.scaffolds.ifEmpty{myDefaultInputFile_assembly }
 			assemblyqc_output = assembly_qc_workflow.out.assemblyqc_path.ifEmpty{myDefaultInputFile_QC_assembly }
 			chromosome_path_output = split_assembly_workflow.out.chromosome_path.ifEmpty{myDefaultInputFile_chr_extraction }
@@ -1022,6 +1030,8 @@ workflow{
 
 			fastqc_html_output = myDefaultInputFile_QC_reads
 			fastqc_trim_html_output = myDefaultInputFile_QC_trimmed_reads
+			fastqc_zip_output = myDefaultInputFile_QC_reads
+			fastqc_trim_zip_output = myDefaultInputFile_QC_trimmed_reads
 			scaffolds_output = myDefaultInputFile_assembly
 			assemblyqc_output = myDefaultInputFile_QC_assembly
 			snippy_output = myDefaultInputFile_SNV_detection
@@ -1091,6 +1101,8 @@ workflow{
 	report_workflow( sample_name,
 					 fastqc_html_output,
 					 fastqc_trim_html_output,
+					 fastqc_zip_output,
+					 fastqc_trim_zip_output,
 					 scaffolds_output,
 					 chromosome_path_output,
 					 plasmid_path_output,
@@ -1110,45 +1122,15 @@ workflow{
 
 					)
 
-
-
-/*	
-	multiqc_workflow( sample_name,
-					 fastqc_html_output,
-					 fastqc_trim_html_output,
-					 scaffolds_output,
-					 chromosome_path_output,
-					 plasmid_path_output,
-					 phage_path_output,
-					 assemblyqc_output,
-					 prokka_scaffolds_path_output,
-					 prokka_chr_path,
-					 prokka_plasmids_path,
-					 pharokka_path,
-					 plasclass_output,
-        			 checkv_output,
-        			 snippy_output,
-					 minimap2_output,
-					 stats_output,
-					 gtdb_output,
-					qualimap_output
-
-					
-
-        				//assembly2gene_table,
-        				//assembly2gene_aligments,
-        				//assembly2gene_peptides
-					)
-*/
-	
-cleanup(report_workflow.out.final_report)
-
+	multiqc(report_workflow.out.final_report) 
+	//params.cleanup.view()
+	if (params.cleanup ){ cleanup_end(report_workflow.out.final_report) }
 }
 
 
 workflow.onComplete {
-	
 	println ( workflow.success ? "\nDone! see the report in ${params.outdir} for more details \n" : "Oops .. something went wrong" )
+	//if (params.cleanup ){ cleanup_end(report_workflow.out.final_report) }
 }
 
 

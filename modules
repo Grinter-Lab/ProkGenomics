@@ -740,13 +740,13 @@ process split_assembly {
 
         """
         # all contigs 
-        grep ">" ${scaffolds_path} |cut -d " " -f1|sed 's/>//' >all_contigs.txt
+        grep '>' ${scaffolds_path} |cut -d " " -f1|sed 's/>//' >all_contigs.txt
 
         #plasmid contigs
-        awk 'BEGIN{OFS="\\t"} \$2 >= 0.8 {print \$1}' ${plasclass_tsv} >plasmid_contigs.txt
+        awk 'BEGIN{OFS='\\t'} \$2 >= 0.8 {print \$1}' ${plasclass_tsv} >plasmid_contigs.txt
 
         #phage contigs
-        grep "Yes" ${checkv_summary}| cut -f1 >phage_contigs.txt
+        grep 'Yes' ${checkv_summary}| cut -f1 >phage_contigs.txt
 
         #extrachr contigs
         cat plasmid_contigs.txt phage_contigs.txt >extrachr.txt
@@ -759,7 +759,7 @@ process split_assembly {
         if [ -s plasmid_contigs.txt ]; then xargs samtools faidx ${scaffolds_path} < plasmid_contigs.txt > ${prefix}_plasmid.fasta; fi
         if [ -s phage_contigs.txt ]; then
          xargs samtools faidx ${scaffolds_path} < phage_contigs.txt > ${prefix}_tmp_phage.fasta 
-         awk 'BEGIN { FS=OFS=" " } /^>/ { print \$1"_phage"; next }1' ${prefix}_tmp_phage.fasta > ${prefix}_phage.fasta;
+         awk 'BEGIN { FS=OFS=' ' } /^>/ { print \$1"_phage"; next }1' ${prefix}_tmp_phage.fasta > ${prefix}_phage.fasta;
         fi
 
         ln -s ${scaffolds_path} ${prefix}_de_novoassembly.fasta
@@ -1254,6 +1254,8 @@ process report{
         val (prefix)
         tuple val(prefix0), path (fastqc_html)
         tuple val(prefix1), path (fastqc_trim_html)
+        tuple val(prefix0), path (fastqc_zip)
+        tuple val(prefix1), path (fastqc_trim_zip)
         tuple val(prefix2), path (novoassembly_path)
         tuple val(prefix3), path (chromosome_path)
         tuple val(prefix4), path (plasmid_path)
@@ -1276,6 +1278,8 @@ process report{
         tuple val(prefix), path("${prefix}_ProkGenomics_report.html"), emit: report_path
         tuple val(prefix0), path (fastqc_html)
         tuple val(prefix1), path (fastqc_trim_html)
+        tuple val(prefix0), path (fastqc_zip)
+        tuple val(prefix1), path (fastqc_trim_zip)
         tuple val(prefix2), path (novoassembly_path)
         tuple val(prefix3), path (chromosome_path)
         tuple val(prefix4), path (plasmid_path)
@@ -1292,6 +1296,7 @@ process report{
         tuple val(prefix16), path (stats_path)
         tuple val(prefix15), path (gtdbtk_summary)
         tuple val(prefix), path (assembly2gene_table)
+    
         
 
     script:
@@ -1381,6 +1386,8 @@ process report{
 **************************************************************************************************************************************************************/
 
 process multiqc {
+    label 'mount_local_scripts'
+
     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
     maxRetries 3
 
@@ -1393,9 +1400,18 @@ process multiqc {
     } else {
         container "quay.io/biocontainers/multiqc"
     }
-      
+    
+    input:
+
+    tuple val(prefix), path(report_path) 
+
+    output:
+        path("multiqc*")
+
     """
-    multiqc .
+    echo "again"
+    echo "again"
+    multiqc ${params.outdir}/* --config /ProkGenomics_scripts/multiqc_config.yml
     """
 }
 
@@ -1407,16 +1423,12 @@ process multiqc {
 // check the version 
 //sed -n '/version/, /version/{ /version/!p }' software_details.txt 
 
-process cleanup{
+process cleanup_end{
     input:
     tuple val(prefix), path(report_path)  //here I gave the input from last process.
-
-    when:
-    cleanup
 
     script:
     """
     rm -rf $PWD/work
-    rm -rf $PWD/.nextflow.log*
     """
 }
