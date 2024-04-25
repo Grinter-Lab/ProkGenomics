@@ -1124,12 +1124,31 @@ workflow{
 
 	multiqc(report_workflow.out.final_report) 
 	//params.cleanup.view()
-	if (params.cleanup ){ cleanup_end(report_workflow.out.final_report) }
+
 }
+
+//if (params.cleanup ){ cleanup_end(report_workflow.out.final_report) }
 
 
 workflow.onComplete {
-	println ( workflow.success ? "\nDone! see the report in ${params.outdir} for more details \n" : "Oops .. something went wrong" )
+	 def msg = """\
+        Pipeline execution summary
+        ---------------------------
+        Completed at: ${workflow.complete}
+        Duration    : ${workflow.duration}
+        Success     : ${workflow.success}
+        workDir     : ${workflow.workDir}
+        exit status : ${workflow.exitStatus}
+		Results     : ${params.outdir}
+        """
+        .stripIndent()
+
+	script
+	"""
+	#rm -rf ${workflow.workDir}
+	#rm -rf  
+	"""
+	//println ( workflow.success ? "\nDone! see the report in ${params.outdir} for more details \n" : "Oops .. something went wrong" )
 	//if (params.cleanup ){ cleanup_end(report_workflow.out.final_report) }
 }
 
