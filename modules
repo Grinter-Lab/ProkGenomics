@@ -746,10 +746,8 @@ process split_assembly {
         awk 'BEGIN{OFS="\\t"} \$2 >= 0.8 {print \$1}' ${plasclass_tsv} >plasmid_contigs.txt
 
         #phage contigs
-        if [ -s phage_contigs.txt ]; then 
-            grep "Yes" ${checkv_summary}| cut -f1 >phage_contigs.txt
-            fi
-
+        grep "Yes" ${checkv_summary}| cut -f1 >phage_contigs.txt
+        
         #extrachr contigs
         cat plasmid_contigs.txt phage_contigs.txt >extrachr.txt
         
@@ -760,8 +758,10 @@ process split_assembly {
         if [ -s chromosome_contigs.txt ]; then xargs samtools faidx ${scaffolds_path} < chromosome_contigs.txt > ${prefix}_chromosome.fasta; fi
         if [ -s plasmid_contigs.txt ]; then xargs samtools faidx ${scaffolds_path} < plasmid_contigs.txt > ${prefix}_plasmid.fasta; fi
         if [ -s phage_contigs.txt ]; then
-         xargs samtools faidx ${scaffolds_path} < phage_contigs.txt > ${prefix}_tmp_phage.fasta 
-         awk 'BEGIN { FS=OFS=" " } /^>/ { print \$1"_phage"; next }1' ${prefix}_tmp_phage.fasta > ${prefix}_phage.fasta;
+            xargs samtools faidx ${scaffolds_path} < phage_contigs.txt > ${prefix}_tmp_phage.fasta 
+            awk 'BEGIN { FS=OFS=" " } /^>/ { print \$1"_phage"; next }1' ${prefix}_tmp_phage.fasta > ${prefix}_phage.fasta;
+        else
+            echo "no phage founc"
         fi
 
         ln -s ${scaffolds_path} ${prefix}_de_novoassembly.fasta
