@@ -713,6 +713,9 @@ process gtdb {
 
         
 process split_assembly {
+     label 'bash_var_zro_one'
+
+     
 	publishDir "${params.outdir}/splitting_assemblies",
          enabled: params.keep_intermediate_files,
         mode: params.publish_intermediate_files 

@@ -1132,22 +1132,31 @@ workflow{
 
 workflow.onComplete {
 	 def msg = """\
-        Pipeline execution summary
+        
+		
+		Pipeline execution summary
         ---------------------------
         Completed at: ${workflow.complete}
         Duration    : ${workflow.duration}
         Success     : ${workflow.success}
         workDir     : ${workflow.workDir}
         exit status : ${workflow.exitStatus}
-		Results     : ${params.outdir}
+        Results     : ${params.outdir}
         """
         .stripIndent()
+	
 
 	script
 	"""
-	#rm -rf ${workflow.workDir}
-	#rm -rf  
+	if [ ${params.cleanup} == true ];
+	then
+	 rm -rf ${workflow.workDir}
+	fi
 	"""
+		
+	println ( workflow.success ? msg : "Oops .. something went wrong")
+
+
 	//println ( workflow.success ? "\nDone! see the report in ${params.outdir} for more details \n" : "Oops .. something went wrong" )
 	//if (params.cleanup ){ cleanup_end(report_workflow.out.final_report) }
 }
