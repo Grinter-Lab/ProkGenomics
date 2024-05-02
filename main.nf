@@ -74,7 +74,7 @@ params.genes_interest=null
 params.percentage=80
 params.keep_intermediate_files=false
 params.help=false
-params.cleanup=false
+params.cleanup=true
 
 /*************************************************************************************************************************************************************
  *Print
