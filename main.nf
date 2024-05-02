@@ -36,8 +36,13 @@ other:
 		Produce documentation for using pipelines and give a tutorial to the team on how to use the pipelines.
 *
 **************************************************************************************************************************************************************/
-
-
+/**************************************************************************************************************************************************************
+Notes
+**************************************************************************************************************************************************************/
+/* there is a big difference between files no generated in optional outputs and outputs no generated because the whole process did run. The later are very well handled
+by nextflow and the conditions I establish (if/else), the first group is a nightmare and generates //DataflowBroadcast around DataflowStream[?]. The main reason is that
+the the function ifEmpty returns a channel value and you can only feed it a bare value/list. if you feed it a channel queue it doesn't work
+*/
 
 /**************************************************************************************************************************************************************
  * pipeline input parameters
@@ -69,7 +74,7 @@ params.genes_interest=null
 params.percentage=80
 params.keep_intermediate_files=false
 params.help=false
-params.cleanup=true
+params.cleanup=false
 
 /*************************************************************************************************************************************************************
  *Print
@@ -275,146 +280,84 @@ touch myDefaultInputFile_qualimap
 */
 
 
-Channel
- 	.fromPath(params.default_empty_path)
-	.map { file -> tuple (file.baseName,file) }
-	.set{myDefaultInputFile}
-
-//myDefaultInputFile.view()
 
 
-
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_assembly")
-	.map { file -> tuple (file.baseName,file) }
-	.set{myDefaultInputFile_assembly}
-
-//myDefaultInputFile_assembly.view()
-
-
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_assembly_annotation")
-	.map { file -> tuple (file.baseName,file) }
-	.set{myDefaultInputFile_assembly_annotation}
-
-//myDefaultInputFile_assembly_annotation.view()
-
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_chr_annotation")
-	.map { file -> tuple (file.baseName,file)}
-	.set{myDefaultInputFile_chr_annotation}
-
-//myDefaultInputFile_chr_annotation.view()
-
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_chr_classification")
-	.map { file -> tuple (file.baseName,file) }
-	.set{myDefaultInputFile_chr_classification}
-
-//myDefaultInputFile_chr_classification.view()
-
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_chr_extraction")
-	.map { file -> tuple (file.baseName,file)}
-	.set{myDefaultInputFile_chr_extraction}
-
-//myDefaultInputFile_chr_extraction.view()
-
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_mapping")
-	.map { file -> tuple (file.baseName,file) }
-	.set{myDefaultInputFile_mapping}
-
-//myDefaultInputFile_mapping.view()
-
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_phage_annotation")
-	.map { file -> tuple (file.baseName,file) }
-	.set{myDefaultInputFile_phage_annotation}
-
-//myDefaultInputFile_phage_annotation.view()
-
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_phage_classification")
-	.map { file -> tuple (file.baseName,file)}
-	.set{myDefaultInputFile_phage_classification}
-
-//myDefaultInputFile_phage_classification.view()
-
+/*
 Channel
  	.fromPath("${params.default_empty_path}/myDefaultInputFile_phage_extraction")
 	.map { file -> tuple (file.baseName,file) }
 	.set{myDefaultInputFile_phage_extraction}
+*/
 
-//myDefaultInputFile_phage_extraction.view()
+/*
+myDefaultInputFile_phage_extraction = channel
+    .fromPath("${params.default_empty_path}/myDefaultInputFile_phage_extraction")
+    .map { file -> tuple (file.baseName,file) }
+*/
 
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_plasmid_annotation")
-	.map { file -> tuple (file.baseName,file) }
-	.set{myDefaultInputFile_plasmid_annotation}
-
-//myDefaultInputFile_plasmid_annotation.view()
-
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_plasmid_classification")
-	.map { file -> tuple (file.baseName,file) }
-	.set{myDefaultInputFile_plasmid_classification}
-
-//myDefaultInputFile_plasmid_classification.view()
-
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_plasmid_extraction")
-	.map { file -> tuple (file.baseName,file) }
-	.set{myDefaultInputFile_plasmid_extraction}
-
-//myDefaultInputFile_plasmid_extraction.view()
-
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_QC_assembly")
-	.map { file -> tuple (file.baseName,file)}
-	.set{myDefaultInputFile_QC_assembly}
-
-//myDefaultInputFile_QC_assembly.view()
-
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_QC_reads*")
-	.collect()
-	.map { file -> tuple (file.baseName,file) }
-	.set{myDefaultInputFile_QC_reads}
-
-//myDefaultInputFile_QC_reads.view()
-
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_QC_trimmed_*")
-	.collect()
-	.map { file -> tuple (file.baseName,file)}
-	.set{myDefaultInputFile_QC_trimmed_reads}
-
-//myDefaultInputFile_QC_trimmed_reads.view()
+//myDefaultInputFile_phage_extraction = channel.value{tuple(file("${params.default_empty_path}/myDefaultInputFile_phage_extraction").baseName, path("${params.default_empty_path}/myDefaultInputFile_phage_extraction"))}
 
 
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_SNV_detection")
-	.map { file -> tuple (file.baseName,file) }
-	.set{myDefaultInputFile_SNV_detection}
 
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_stats")
-	.map { file -> tuple (file.baseName,file) }
-	.set{myDefaultInputFile_stats}
+	fileDefault=("${params.default_empty_path}/myDefaultInputFile_QC_reads*")
+	myDefaultInputFile_QC_reads=[file(fileDefault).baseName, file(fileDefault)]
 
+ 	fileDefault=("${params.default_empty_path}/myDefaultInputFile_QC_trimmed_*")
+	myDefaultInputFile_QC_trimmed_reads=[file(fileDefault).baseName, file(fileDefault)]
 
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_qualimap")
-	.map { file -> tuple (file.baseName,file) }
-	.set{myDefaultInputFile_qualimap}
+	fileDefault=("${params.default_empty_path}/myDefaultInputFile_phage_extraction")
+	myDefaultInputFile_phage_extraction=[file(fileDefault).baseName, file(fileDefault)]
 
+ 	fileDefault=("${params.default_empty_path}/myDefaultInputFile_plasmid_annotation")
+	myDefaultInputFile_plasmid_annotation=[file(fileDefault).baseName, file(fileDefault)]
 
-Channel
- 	.fromPath("${params.default_empty_path}/myDefaultInputFile_assembly2gene")
-	.map { file -> tuple (file.baseName,file) }
-	.set{myDefaultInputFile_assembly2gene}
+ 	fileDefault=("${params.default_empty_path}/myDefaultInputFile_plasmid_classification")
+	myDefaultInputFile_plasmid_classification=[file(fileDefault).baseName, file(fileDefault)]
+
+ 	fileDefault=("${params.default_empty_path}/myDefaultInputFile_plasmid_extraction")
+	myDefaultInputFile_plasmid_extraction=[file(fileDefault).baseName, file(fileDefault)]
+
+ 	fileDefault=("${params.default_empty_path}/myDefaultInputFile_QC_assembly")
+	myDefaultInputFile_QC_assembly=[file(fileDefault).baseName, file(fileDefault)]
+
+ 	fileDefault=("${params.default_empty_path}/myDefaultInputFile_SNV_detection")
+	myDefaultInputFile_SNV_detection=[file(fileDefault).baseName, file(fileDefault)]
+
+ 	fileDefault=("${params.default_empty_path}/myDefaultInputFile_stats")
+	myDefaultInputFile_stats=[file(fileDefault).baseName, file(fileDefault)]
+
+ 	fileDefault=("${params.default_empty_path}/myDefaultInputFile_qualimap")
+	myDefaultInputFile_qualimap=[file(fileDefault).baseName, file(fileDefault)]
+
+ 	fileDefault=("${params.default_empty_path}/myDefaultInputFile_assembly2gene")
+	myDefaultInputFile_assembly2gene=[file(fileDefault).baseName, file(fileDefault)]
 	
+	fileDefault=("${params.default_empty_path}/myDefaultInputFile_assembly")
+	myDefaultInputFile_assembly=[file(fileDefault).baseName, file(fileDefault)]
+
+	fileDefault=("${params.default_empty_path}/myDefaultInputFile_assembly_annotation")
+	myDefaultInputFile_assembly_annotation=[file(fileDefault).baseName, file(fileDefault)]
+
+	fileDefault=("${params.default_empty_path}/myDefaultInputFile_chr_annotation")
+	myDefaultInputFile_chr_annotation=[file(fileDefault).baseName, file(fileDefault)]
+
+	fileDefault=("${params.default_empty_path}/myDefaultInputFile_chr_classification")
+	myDefaultInputFile_chr_classification=[file(fileDefault).baseName, file(fileDefault)]
+
+	fileDefault=("${params.default_empty_path}/myDefaultInputFile_chr_extraction")
+	myDefaultInputFile_chr_extraction=[file(fileDefault).baseName, file(fileDefault)]
+
+	fileDefault=("${params.default_empty_path}/myDefaultInputFile_mapping")
+	myDefaultInputFile_mapping=[file(fileDefault).baseName, file(fileDefault)]
+
+	fileDefault=("${params.default_empty_path}/myDefaultInputFile_phage_annotation")
+	myDefaultInputFile_phage_annotation=[file(fileDefault).baseName, file(fileDefault)]
+
+	fileDefault=("${params.default_empty_path}/myDefaultInputFile_phage_classification")
+	myDefaultInputFile_phage_classification=[file(fileDefault).baseName, file(fileDefault)]
+
+
+
 
 /**************************************************************************************************************************************************************
  * Print parameters
@@ -501,7 +444,7 @@ include { multiqc } from params.modules
 include { report } from params.modules
 
 //Clean up
-include { cleanup_end } from params.modules
+include { cleanup_prep } from params.modules
 
 /**************************************************************************************************************************************************************
  * workflows subroutine
@@ -571,6 +514,7 @@ workflow split_assembly_workflow{
     	chromosome_path=split_assembly.out.chromosome_path
     	plasmid_path=split_assembly.out.plasmid_path
     	phage_path=split_assembly.out.phage_path
+		//.collect().ifEmpty( myDefaultInputFile_phage_extraction)
 }
 
 workflow prokka_scaffolds_workflow{
@@ -963,9 +907,9 @@ workflow multiqc_workflow{
 
 workflow{
 
-	main:
-	
-	if (params.run_classification ){db_gtdb_download_workflow()}
+  main:
+
+   if (params.run_classification ){db_gtdb_download_workflow()}
 	db_checkv_download_workflow()
 	db_pharokka_download_workflow()
 
@@ -1000,7 +944,6 @@ workflow{
 				gtdb_output = gtdb_workflow.out.gtdb_path.ifEmpty{myDefaultInputFile_chr_classification }
 				}else{ gtdb_output = myDefaultInputFile_chr_classification }
 
-
 			fastqc_html_output = shortreads_QC_workflow.out.fastqc_html.ifEmpty{ myDefaultInputFile_QC_reads }
 			fastqc_trim_html_output = shortreads_trim_workflow.out.fastqc_trim_html.ifEmpty{myDefaultInputFile_QC_trimmed_reads }
 			fastqc_zip_output = shortreads_QC_workflow.out.fastqc_zip.ifEmpty{ myDefaultInputFile_QC_reads }
@@ -1008,8 +951,8 @@ workflow{
 			scaffolds_output = shortreads_assembly_workflow.out.scaffolds.ifEmpty{myDefaultInputFile_assembly }
 			assemblyqc_output = assembly_qc_workflow.out.assemblyqc_path.ifEmpty{myDefaultInputFile_QC_assembly }
 			chromosome_path_output = split_assembly_workflow.out.chromosome_path.ifEmpty{myDefaultInputFile_chr_extraction }
-			plasmid_path_output = split_assembly_workflow.out.plasmid_path.ifEmpty{myDefaultInputFile_plasmid_extraction }
-			phage_path_output = split_assembly_workflow.out.phage_path.ifEmpty{myDefaultInputFile_phage_extraction }
+			plasmid_path_output =  split_assembly_workflow.out.plasmid_path.ifEmpty{myDefaultInputFile_plasmid_extraction}
+			phage_path_output = split_assembly_workflow.out.phage_path.ifEmpty{ myDefaultInputFile_phage_extraction }	
 			prokka_scaffolds_path_output = prokka_scaffolds_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_assembly_annotation }
 			prokka_chr_path = prokka_chr_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_chr_annotation }
 			prokka_plasmids_path = prokka_plasmids_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_plasmid_annotation }
@@ -1017,6 +960,8 @@ workflow{
 			plasclass_output = extrachr_workflow.out.plasclass_tsv.ifEmpty{myDefaultInputFile_plasmid_classification }
 			checkv_output = extrachr_workflow.out.checkv_summary.ifEmpty{myDefaultInputFile_phage_classification }
 			
+
+
 
 			}else if(params.assembly_type=='long')
 				{
@@ -1052,15 +997,18 @@ workflow{
 				}else{ gtdb_output = myDefaultInputFile_chr_classification }
 
 
+
 			chromosome_path_output = split_assembly_workflow.out.chromosome_path.ifEmpty{ myDefaultInputFile_chr_extraction }
-			plasmid_path_output = split_assembly_workflow.out.plasmid_path.ifEmpty{myDefaultInputFile_plasmid_extraction }
-			phage_path_output = split_assembly_workflow.out.phage_path.ifEmpty{myDefaultInputFile_phage_extraction }
+			plasmid_path_output = split_assembly_workflow.out.plasmid_path.ifEmpty{myDefaultInputFile_plasmid_extraction } 
+			phage_path_output = split_assembly_workflow.out.phage_path.ifEmpty{myDefaultInputFile_phage_extraction}
 			prokka_scaffolds_path_output = prokka_scaffolds_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_assembly_annotation }
 			prokka_chr_path = prokka_chr_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_chr_annotation }
 			prokka_plasmids_path = prokka_plasmids_workflow.out.prokka_path.ifEmpty{myDefaultInputFile_plasmid_annotation }
-			pharokka_path = pharokka_workflow.out.pharokka_path.ifEmpty{myDefaultInputFile_phage_annotation }
-			plasclass_output = extrachr_workflow.out.plasclass_tsv.ifEmpty{myDefaultInputFile_plasmid_annotation }
+			pharokka_path =  pharokka_workflow.out.pharokka_path.ifEmpty{myDefaultInputFile_phage_annotation }
+			plasclass_output = extrachr_workflow.out.plasclass_tsv.ifEmpty{myDefaultInputFile_plasmid_classification }
 			checkv_output = extrachr_workflow.out.checkv_summary.ifEmpty{myDefaultInputFile_phage_classification }
+
+
 		}
  
 		if(params.genes_interest){
@@ -1098,6 +1046,33 @@ workflow{
 		}else{assembly2gene_table=myDefaultInputFile_assembly2gene}
 
 
+// Check variables
+
+/*
+					 sample_name.subscribe { println " sample_name Got: $it" }
+					 fastqc_html_output.subscribe { println " fastqc_html_output Got: $it" }
+					 fastqc_trim_html_output.subscribe { println " fastqc_trim_html_output Got: $it" }
+					 fastqc_zip_output.subscribe { println " fastqc_zip_output Got: $it" }
+					 fastqc_trim_zip_output.subscribe { println " fastqc_trim_zip_output Got: $it" }
+					 scaffolds_output.subscribe { println " scaffolds_output Got: $it" }
+					 chromosome_path_output.subscribe { println "chromosome_path_output Got: $it" }
+					 plasmid_path_output.subscribe { println "plasmid_path_output Got: $it" }
+					 phage_path_output.subscribe { println "phage_path_output Got: $it" }
+					 assemblyqc_output.subscribe { println "assemblyqc_output Got: $it" }
+					 prokka_scaffolds_path_output.subscribe { println "prokka_scaffolds_path Got: $it" }
+					 prokka_chr_path.subscribe { println "prokka_chr_path Got: $it" }
+					 prokka_plasmids_path.subscribe { println "prokka_plasmids_path Got: $it" }
+					 pharokka_path.subscribe { println "pharokka_path Got: $it" }
+					 plasclass_output.subscribe { println "plasclass_output Got: $it" }
+        			 checkv_output.subscribe { println "checkv_output Got: $it" }
+        			 snippy_output.subscribe { println "snippy_output Got: $it" }
+					 qualimap_output.subscribe { println "qualimap_output Got: $it" }
+					 stats_output.subscribe { println " stats_output Got: $it" }
+					 gtdb_output.subscribe { println "gtdb_output Got: $it" }
+        			 assembly2gene_table.subscribe { println "assembly2gene_table Got: $it" }
+*/
+
+
 	report_workflow( sample_name,
 					 fastqc_html_output,
 					 fastqc_trim_html_output,
@@ -1124,6 +1099,7 @@ workflow{
 
 	multiqc(report_workflow.out.final_report) 
 	//params.cleanup.view()
+	cleanup_prep(report_workflow.out.final_report)
 
 }
 
@@ -1145,24 +1121,20 @@ workflow.onComplete {
         """
         .stripIndent()
 	
-
-	script
-	"""
-	if [ ${params.cleanup} == true ];
-	then
-	 rm -rf ${workflow.workDir}
-	fi
-	"""
+    	def proc = ["$baseDir/scripts/cleanup_wordirectory.sh", params.cleanup, workflow.workDir ].execute()
+    proc.waitForProcessOutput()
 		
 	println ( workflow.success ? msg : "Oops .. something went wrong")
-
 
 	//println ( workflow.success ? "\nDone! see the report in ${params.outdir} for more details \n" : "Oops .. something went wrong" )
 	//if (params.cleanup ){ cleanup_end(report_workflow.out.final_report) }
 }
 
+//def previousOutput1Value = previousOutput1 instanceof groovyx.gpars.dataflow.DataflowStream ? previousOutput1.toList().get(0) : previousOutput1
 
+//DataflowBroadcast around DataflowStream[?] 
 
-
+//	pharokka_path =  pharokka_workflow.out.pharokka_path.collect{ it[0] } instanceof String  ? pharokka_workflow.out.pharokka_path.ifEmpty{myDefaultInputFile_phage_annotation } : myDefaultInputFile_phage_annotation 
 
 //\n//Taxonomical classifications ${db_gtdb_download_workflow.out.db_diskspace_val} 
+//			pharokka_path =  pharokka_workflow.out.pharokka_path instanceof String ? pharokka_workflow.out.pharokka_path.ifEmpty{myDefaultInputFile_phage_annotation }: myDefaultInputFile_phage_annotation

@@ -462,7 +462,7 @@ process db_pharokka_download {
         task.cpus="${params.threads}"
         software = "${params.software_versions}"
         """
-
+        echo "again"
         chmod a+x /ProkGenomics_scripts/db_pharokka.sh
         install_databases.py -o pharokka_databases || /ProkGenomics_scripts/db_pharokka.sh
        
@@ -697,7 +697,10 @@ process gtdb {
             echo "version\n\n" >>  ${software}
 
             echo "\${cmd}" >>  ${software} 
-             \${cmd} || touch ${prefix}_gtdbtk_classification/gtdbtk.${prefix}.summary.tsv
+             \${cmd} 
+
+             #\${cmd} || touch ${prefix}_gtdbtk_classification/gtdbtk.${prefix}.summary.tsv
+
              #add --gtdbtk_pplacer_scratch
         else
             echo "classification failed. Need more disk space" 
@@ -764,7 +767,7 @@ process split_assembly {
             xargs samtools faidx ${scaffolds_path} < phage_contigs.txt > ${prefix}_tmp_phage.fasta 
             awk 'BEGIN { FS=OFS=" " } /^>/ { print \$1"_phage"; next }1' ${prefix}_tmp_phage.fasta > ${prefix}_phage.fasta;
         else
-            echo "no phage founc"
+            echo "no phage found"
         fi
 
         ln -s ${scaffolds_path} ${prefix}_de_novoassembly.fasta
@@ -1274,9 +1277,9 @@ process report{
         tuple val(prefix12), path (phage_class)
         tuple val(prefix13), path (snippy_path)
         tuple val(prefix14), path (qualimap_path)
-        tuple val(prefix16), path (stats_path)
-        tuple val(prefix15), path (gtdbtk_summary)
-        tuple val(prefix), path (assembly2gene_table)
+        tuple val(prefix15), path (stats_path)
+        tuple val(prefix16), path (gtdbtk_summary)
+        tuple val(prefix17), path (assembly2gene_table)
 
 
     output:
@@ -1298,9 +1301,9 @@ process report{
         tuple val(prefix12), path (phage_class)
         tuple val(prefix13), path (snippy_path)
         tuple val(prefix14), path (qualimap_path)
-        tuple val(prefix16), path (stats_path)
-        tuple val(prefix15), path (gtdbtk_summary)
-        tuple val(prefix), path (assembly2gene_table)
+        tuple val(prefix15), path (stats_path)
+        tuple val(prefix16), path (gtdbtk_summary)
+        tuple val(prefix17), path (assembly2gene_table)
     
         
 
@@ -1312,9 +1315,11 @@ process report{
         report_template="${params.report_template}"
         Rrender="${params.Rrender}"
         keep_intermediate="${params.keep_intermediate_files}"
+  
+
+       //pharokka_path_fixed = pharokka_path instanceof groovyx.gpars.dataflow.DataflowStream ? "null": pharokka_path
 
         """          
-       
         echo "Run Rscript in one line in the container"  
 
 
@@ -1377,7 +1382,10 @@ process report{
 
         fi
 
-                                  
+
+
+
+
         """
 
 
@@ -1428,12 +1436,13 @@ process multiqc {
 // check the version 
 //sed -n '/version/, /version/{ /version/!p }' software_details.txt 
 
-process cleanup_end{
+process cleanup_prep{
     input:
     tuple val(prefix), path(report_path)  //here I gave the input from last process.
 
     script:
     """
-    rm -rf $PWD/work
+    chmod a+x $baseDir/scripts/cleanup_wordirectory.sh
+    rm ${params.outdir}/myDefaultInputFile*
     """
 }

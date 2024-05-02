@@ -36,6 +36,10 @@ parameters<- c( prefix_sample= args[3] ,
 parameters<-as.data.frame(t(gsub(".+myDefaultInputFile.+","NO_APPLY",parameters)))
 file_name=paste0(parameters$prefix_sample,"_ProkGenomics_report.html")
 
+if(  parameters$assembly2gene_table == "NO_APPLY") { parameters$assembly2gene_aligments="NO_APPLY"
+                                                     parameters$assembly2gene_peptide="NO_APPLY"
+                                                    }
+
 if (file.exists(parameters$gtdb_path)){
     if(file.size(parameters$gtdb_path)==0){parameters$gtdb_path="NO_APPLY_PROBLEM_RUNNING_GTDB"}}
 
