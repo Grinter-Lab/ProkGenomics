@@ -1097,7 +1097,7 @@ workflow{
 
 					)
 
-	multiqc(report_workflow.out.final_report) 
+	//multiqc(report_workflow.out.final_report) 
 	//params.cleanup.view()
 	cleanup_prep(report_workflow.out.final_report)
 
@@ -1121,11 +1121,11 @@ workflow.onComplete {
         """
         .stripIndent()
 	
-    	def proc = ["$baseDir/scripts/cleanup_wordirectory.sh", params.cleanup, workflow.workDir ].execute()
-    proc.waitForProcessOutput()
-		
 	println ( workflow.success ? msg : "Oops .. something went wrong")
 
+    def proc = ["$baseDir/scripts/cleanup_wordirectory.sh", params.cleanup, workflow.workDir ].execute()
+    proc.waitForProcessOutput()
+		
 	//println ( workflow.success ? "\nDone! see the report in ${params.outdir} for more details \n" : "Oops .. something went wrong" )
 	//if (params.cleanup ){ cleanup_end(report_workflow.out.final_report) }
 }
